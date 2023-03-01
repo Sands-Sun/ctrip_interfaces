@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.dne.ctrip.mail.dao.CommonMailDao">
+
+    <!--t_bu_workitem实体映射-->
+    <resultMap id="MailResultMap" type="com.dne.ctrip.entity.CommonMailPolicy">
+		<id property="mailId" column="mail_id" />
+		<result property="processType" column="process_type" />
+		<result property="mailType" column="mail_type" />
+		<result property="subject" column="subject" />
+		<result property="tpath" column="path" />
+		<result property="template" column="template" />
+		<result property="mailTo" column="mail_to" />
+    </resultMap>
+
+    <select id="getCommonMailPolicyByMailType" resultMap="MailResultMap" >
+        select top 1 mail_id,process_type,mail_type,subject,path,template,mail_to 
+		from b_md_common_mail_policy 
+		where del_flag='0' and process_type=#{processType} and mail_type=#{mailType} 
+		order by create_date desc 
+    </select>
+    
+    <insert id="insertComonMail" useGeneratedKeys="true" keyProperty="mailId">
+		insert into b_proc_batch_complete_mail(mail_sender,mail_from,mail_to,mail_cc,mail_subject,mail_body,mail_attachment,create_date,is_sent,wrong_times)
+		values(#{mailSender},#{mailFrom},#{mailTo},#{mailCc},#{mailSubject},#{mailBody},#{mailAttachment},#{createDate},#{isSent},#{wrongtimes})
+    </insert>
+    
+</mapper>

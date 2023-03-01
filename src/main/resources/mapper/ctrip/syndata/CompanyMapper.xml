@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.dne.ctrip.syndata.dao.CompanyDao">
+
+    <resultMap id="companyNameManagementMap" type="com.dne.ctrip.entity.CompanyNameManagement" >
+        <result column="id" property="id" />
+        <result column="CompanyName_CN" property="companyNameCn" />
+        <result column="CompanyName_EN" property="companyNameEn" />
+        <result column="CompanyCode" property="companyCode" />
+        <result column="IsDelete" property="isDelete" />
+    </resultMap>
+
+
+    <select id="getCompanyNames" resultMap="companyNameManagementMap">
+        SELECT Id,CompanyName_CN,CompanyName_EN,
+            IsDelete,CompanyCode FROM BC_CompanyName_Management WHERE IsDelete = 0
+    </select>
+
+
+
+
+    <select id="getCompanyCodeByOrderIds" resultType="com.dne.ctrip.entity.CompanyCodeAndCostCenterRef">
+        SELECT DISTINCT t.order_id as refId, t.company_code as companyCode, t.cost_center as costCenter
+            FROM  b_ctrip_order_info t WHERE
+            <include refid="InternalMapper.forEachConditionSql">
+                <property name="column" value="t.order_id"/>
+            </include>
+    </select>
+
+
+    <select id="getCompanyCodeByCwIds" resultType="com.dne.ctrip.entity.CompanyCodeAndCostCenterRef">
+        select DISTINCT t.cwid as refId,t.email as extraRef,t.company_code as companyCode,t.cost_center as costCenter
+            FROM b_ctrip_employee  as t  WHERE
+            <include refid="InternalMapper.forEachConditionSql">
+                <property name="column" value="t.cwid"/>
+            </include>
+    </select>
+    
+    <select id="getCompanyCodeByIpin" resultType="com.dne.ctrip.entity.CompanyCodeAndCostCenterRef">
+        select DISTINCT t.cwid as refId,t.email as extraRef,t.company_code as companyCode,t.cost_center as costCenter
+        FROM b_ctrip_employee as t WHERE t.ipin = #{ipin}
+    </select>
+
+    <select id="getCompanyCodeByCenterCodes" resultType="com.dne.ctrip.entity.CompanyCodeAndCostCenterRef">
+        select DISTINCT t.CompanyCode as CompanyCode, t.Code as costCenter from TCFG_CostCenter as t
+            WHERE
+            <include refid="InternalMapper.forEachConditionSql">
+                <property name="column" value="t.Code"/>
+            </include>
+    </select>
+</mapper>

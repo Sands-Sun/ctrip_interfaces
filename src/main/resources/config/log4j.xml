@@ -1,0 +1,43 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE log4j:configuration SYSTEM "log4j.dtd">
+<log4j:configuration xmlns:log4j="http://jakarta.apache.org/log4j/" debug="false">
+    <appender name="consoleLog" class="org.apache.log4j.ConsoleAppender">
+        <layout class="org.apache.log4j.PatternLayout">
+            <param name="ConversionPattern" value="[%d{yyyy-MM-dd HH:mm:ss}] [%c{1}.%M(%L)] %-5p %m%n" />
+        </layout>
+        <filter class="org.apache.log4j.varia.LevelRangeFilter">
+			<param name="levelMin" value="debug" />
+			<param name="levelMax" value="fatal" />
+			<param name="AcceptOnMatch" value="true" />
+		</filter>
+    </appender>
+    <appender name="adminLog" class="org.apache.log4j.RollingFileAppender">
+<!--        <param name="file" value="C:/App/Ctrip/logs/ctrip/river.log" />-->
+        <param name="file" value="D:/App/Ctrip/logs/river.log" />
+        <param name="append" value="true" />
+        <param name="maxFileSize" value="10MB" />
+        <param name="maxBackupIndex" value="500" />
+        <layout class="org.apache.log4j.PatternLayout">
+        	<param name="ConversionPattern" value="[%d{yyyy-MM-dd HH:mm:ss}] [%c{1}.%M(%L)] %-5p %m%n" />
+        </layout>
+        <filter class="org.apache.log4j.varia.LevelRangeFilter">
+            <param name="levelMin" value="debug" />
+            <param name="levelMax" value="fatal" />
+            <param name="AcceptOnMatch" value="true" />
+        </filter>
+    </appender>
+     
+    <!-- 打印myBatis的sql语句 -->
+    <!-- <category name="java.sql">
+        <priority value="debug" />
+    </category>
+    <category name="META-INF.ibatis">
+        <priority value="error" />
+    </category>-->
+     
+    <root>
+		<priority value="info"/>
+		<appender-ref ref="consoleLog" />
+		<appender-ref ref="adminLog" />
+	</root>
+</log4j:configuration>

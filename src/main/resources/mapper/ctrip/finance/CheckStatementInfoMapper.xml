@@ -1,0 +1,189 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.dne.ctrip.finance.dao.OrderCheckStatementDao">
+
+
+    <insert id="addCheckStatement" useGeneratedKeys="true" keyProperty="id"
+            parameterType="com.dne.ctrip.entity.StatementInfo">
+        insert into b_ctrip_statement_info(statement_date,statement_file,
+            order_num,refund_num,check_status,batch_no,mark_deleted,create_date)
+        values
+        (#{statementDate},#{statementFile},#{orderNum},#{refundNum},
+        #{checkStatus},#{batchNo},'N',getdate())
+    </insert>
+
+    <update id="updCheckStatement">
+        UPDATE b_ctrip_statement_info
+            set order_num=#{orderNum},refund_num=#{refundNum},
+            check_status=#{checkStatus},update_date=getdate()
+        WHERE id = #{statementId}
+    </update>
+
+    <!--保存月返款明细 -->
+    <insert id="addRefundStatements" useGeneratedKeys="true" keyProperty="id"
+            parameterType="com.dne.ctrip.entity.OrderCheckStatementInfo">
+        insert into b_ctrip_refund_statement_info
+            (statement_id,order_id,order_status,user_car_type,use_car_type_detail_info,
+            call_user_name,call_user_employee_id,email_adress,call_user_phone,department_name,
+            department_code,call_user_company_code,passenger_name,passenger_phone,
+            payment_type,order_total_price,company_real_pay,personal_payment,
+            service_content,personal_payment_detail,car_basic_fee_detail ,services_fee,
+            post_service_free,express_fee,car_value_add_fee,car_add_tax_amount,penalty_fee,
+            refund_price,order_type,order_time,plan_time,receiving_time, begin_charge_time,
+            end_charge_time,pay_time,refund_time,call_contry,arrive_city,drive_distance,
+            start_place,start_place_name,destination,destination_name,real_start_place,real_destination,
+            use_car_regulation,use_car_mode,cost_center_name,cost_center_id,use_car_remark ,
+            additional_remarks,department_three,batch_no,mark_deleted,create_date)
+        values
+        <foreach collection="refunds" item="item" index="index" separator="," >
+            (#{item.statementId},#{item.orderId}, #{item.orderStatus},#{item.useCarType},#{item.useCarTypeDetailInfo},
+            #{item.callUserName},#{item.callUserEmployeeId},#{item.emailAddress},#{item.callUserPhone},#{item.departmentName},
+            #{item.departmentCode},#{item.callUserCompanyCode},#{item.passengerName},#{item.passengerPhone},
+            #{item.paymentType},#{item.orderTotalPrice},#{item.companyRealPay},#{item.personalPayment},
+            #{item.serviceContent},#{item.personalPaymentDetail},#{item.carBasicFeeDetail},#{item.servicesFee},#{item.postServiceFree},
+            #{item.expressFee},#{item.carValueAddFee},#{item.carAddTaxAmount},#{item.penaltyFee},
+            #{item.refundPrice},#{item.orderType},#{item.orderTime,jdbcType=TIMESTAMP},#{item.planTime,jdbcType=TIMESTAMP},
+            #{item.receivingTime,jdbcType=TIMESTAMP},#{item.beginChargeTime,jdbcType=TIMESTAMP}, #{item.endChargeTime,jdbcType=TIMESTAMP},
+            #{item.payTime,jdbcType=TIMESTAMP},#{item.refundTime},#{item.callContry},#{item.arriveCity}, #{item.driveDistance},
+            #{item.startPlace},#{item.startPlaceName},#{item.destination},#{item.destinationName}, #{item.realStartPlace}, #{item.realDestination},
+            #{item.useCarRegulation},#{item.useCarMode},#{item.costCenterName},#{item.costCenterId},#{item.useCarRemark},
+            #{item.additionalRemarks},#{item.department3},#{item.batchNo},'N',getdate())
+        </foreach>
+    </insert>
+
+    <!--保存订单月对账单明细 -->
+    <insert id="addOrderStatements" useGeneratedKeys="true" keyProperty="id"
+            parameterType="com.dne.ctrip.entity.OrderCheckStatementInfo">
+        INSERT INTO b_ctrip_order_statement_info
+            (statement_id,order_id,order_status, user_car_type,use_car_type_detail_info,
+            call_user_name,call_user_employee_id,email_adress,call_user_phone,department_name,
+            department_code,call_user_company_code,passenger_name,passenger_phone,
+            payment_type,order_total_price,company_real_pay,personal_payment,
+            service_content,personal_payment_detail,car_basic_fee_detail ,services_fee,
+            post_service_free,express_fee,car_value_add_fee,car_add_tax_amount,penalty_fee,
+            refund_price,order_type,order_time,plan_time,receiving_time,begin_charge_time,
+            end_charge_time,pay_time,refund_time,call_contry,arrive_city,drive_distance,
+            start_place,start_place_name,destination,destination_name,real_start_place,real_destination ,
+            use_car_regulation ,use_car_mode,cost_center_name,cost_center_id,use_car_remark ,
+            additional_remarks ,statement_date,batch_no,check_result,mark_deleted,create_date,company_code,cc_tag,cost_center)
+        VALUES
+        <foreach collection="orders" item="item" index="index" separator="," >
+            (#{item.statementId},#{item.orderId},#{item.orderStatus},#{item.useCarType},#{item.useCarTypeDetailInfo},
+             #{item.callUserName},#{item.callUserEmployeeId},#{item.emailAddress},#{item.callUserPhone},#{item.departmentName},
+             #{item.departmentCode},#{item.callUserCompanyCode},#{item.passengerName},#{item.passengerPhone},
+             #{item.paymentType},#{item.orderTotalPrice},#{item.companyRealPay},#{item.personalPayment},
+             #{item.serviceContent},#{item.personalPaymentDetail},#{item.carBasicFeeDetail},#{item.servicesFee},
+             #{item.postServiceFree},#{item.expressFee},#{item.carValueAddFee},#{item.carAddTaxAmount},#{item.penaltyFee},
+             #{item.refundPrice},#{item.orderType},#{item.orderTime,jdbcType=TIMESTAMP},#{item.planTime,jdbcType=TIMESTAMP},
+             #{item.receivingTime,jdbcType=TIMESTAMP},#{item.beginChargeTime,jdbcType=TIMESTAMP}, #{item.endChargeTime,jdbcType=TIMESTAMP},
+             #{item.payTime,jdbcType=TIMESTAMP},#{item.refundTime,jdbcType=TIMESTAMP},#{item.callContry},#{item.arriveCity},#{item.driveDistance},
+             #{item.startPlace},#{item.startPlaceName},#{item.destination},#{item.destinationName},#{item.realStartPlace},#{item.realDestination},
+             #{item.useCarRegulation},#{item.useCarMode},#{item.costCenterName},#{item.costCenterId},#{item.useCarRemark},
+             #{item.additionalRemarks},#{billDate},#{item.batchNo},'0','N',getdate(),#{item.companyCode},#{item.ccTag},#{item.costCenter})
+        </foreach>
+    </insert>
+
+
+    <!-- 查询Dummy cost center -->
+    <select id="getDummyCostCenters" resultType="com.dne.ctrip.entity.DummyCostCenter">
+        select company_code as companyCode,dummy_cost_center as dummyCoder
+        from b_airplus_company_dummy_costcenter
+        where mark_deleted='N'
+    </select>
+
+
+    <!--查询不存在的订单 -->
+    <select id="getCheckNoExistOrders" resultType="com.dne.ctrip.finance.entity.OrderCheckResultDetail">
+        SELECT
+            a.id,
+            a.order_id AS orderId,
+            a.company_real_pay AS orderAmt,
+            a.pay_time AS payTime,
+            '1' AS checkResult,
+            a.cost_center  as costCenter,
+            b.cost_center as userCostCenter,
+            cs.LE_CODE AS companyCode,
+            ac.CompanyName_CN  AS companyNameCn,
+            ac.CompanyName_EN  AS companyNameEn
+        FROM b_ctrip_order_statement_info a
+            LEFT JOIN b_ctrip_employee b ON a.call_user_employee_id = b.cwid
+            LEFT JOIN B_MD_COST_CENTER_STRUCTURE cs ON cs.CODE = a.cost_center
+            LEFT JOIN BC_CompanyName_Management ac on ac.CompanyCode  = cs.LE_CODE
+        WHERE a.batch_no = #{batchNo}
+        AND a.check_result = '0'
+            AND NOT EXISTS ( SELECT * FROM b_ctrip_order_info d WHERE a.order_id = d.order_id )
+    </select>
+
+    <!--查询重复的订单 -->
+    <select id="getCheckRepeatOrders" resultType="com.dne.ctrip.finance.entity.OrderCheckResultDetail">
+        select
+            a.id,
+            a.order_id AS orderId,
+            a.company_real_pay AS orderAmt,
+            a.pay_time AS payTime,
+            '2' AS checkResult,
+            a.cost_center as costCenter,
+            b.cost_center as userCostCenter,
+            cs.LE_CODE AS companyCode,
+            ac.CompanyName_CN  AS companyNameCn,
+            ac.CompanyName_EN  AS companyNameEn
+        FROM b_ctrip_order_statement_info a
+            LEFT JOIN b_ctrip_employee b ON a.call_user_employee_id = b.cwid
+            LEFT JOIN B_MD_COST_CENTER_STRUCTURE cs ON cs.CODE = a.cost_center
+            LEFT JOIN BC_CompanyName_Management ac on ac.CompanyCode = cs.LE_CODE
+        WHERE 1=1
+        and a.batch_no=#{batchNo}
+        and a.check_result='0'
+        and a.order_id in (
+            select repeatOrder.orderId from (
+                SELECT  order_id as orderId, COUNT(*) as countOrder
+                    FROM  b_ctrip_order_statement_info
+                WHERE  check_result = '0' and sign(company_real_pay) != -1
+                group BY order_id HAVING COUNT(*) >= 2
+            ) repeatOrder
+        )
+    </select>
+
+    <!--查询金额大的订单 -->
+    <select id="getCheckLargeAmtOrders" resultType="com.dne.ctrip.finance.entity.OrderCheckResultDetail">
+        SELECT
+            a.id,
+            a.order_id AS orderId,
+            a.company_real_pay AS orderAmt,
+            a.pay_time AS payTime,
+            '3' AS checkResult,
+            a.cost_center as costCenter,
+            c.cost_center as userCostCenter,
+            cs.LE_CODE AS companyCode,
+            ac.CompanyName_CN  AS companyNameCn,
+            ac.CompanyName_EN  AS companyNameEn
+        FROM b_ctrip_order_statement_info a
+            INNER JOIN b_ctrip_order_info b ON a.order_id = b.order_id
+            LEFT JOIN b_ctrip_employee c ON a.call_user_employee_id = c.cwid
+            LEFT JOIN B_MD_COST_CENTER_STRUCTURE cs ON cs.CODE = a.cost_center
+            LEFT JOIN BC_CompanyName_Management ac on ac.CompanyCode = cs.LE_CODE
+        WHERE a.batch_no =#{batchNo}
+            AND a.company_real_pay > b.company_pay
+            AND a.check_result = '0'
+    </select>
+
+    <!--更新对账结果 -->
+    <update id="updateCheckResultBySimple" parameterType="com.dne.ctrip.finance.entity.OrderCheckResultDetail">
+        update b_ctrip_order_statement_info
+            set	check_result=#{checkResult},update_date=getdate()
+        where id = #{id}
+    </update>
+
+
+    <!--更新对账结果 -->
+    <update id="updCheckStatementResult" parameterType="com.dne.ctrip.finance.entity.OrderCheckResultDetail">
+        <foreach collection="items" item="item" separator=";">
+            update b_ctrip_order_statement_info
+            <set>
+                check_result=#{item.checkResult},update_date=getdate()
+            </set>
+            where id = #{item.id}
+        </foreach>
+    </update>
+
+</mapper>

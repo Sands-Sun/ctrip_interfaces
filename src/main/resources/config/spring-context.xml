@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:aop="http://www.springframework.org/schema/aop"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-4.0.xsd
+      	http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-4.0.xsd
+     	http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-4.0.xsd">
+
+    <context:component-scan base-package="com.dne" />
+    
+	<!-- 启动对@AspectJ注解的支持 -->
+	<aop:aspectj-autoproxy proxy-target-class="true" />
+	
+	<!-- 引入jdbc配置文件  -->
+	<context:property-placeholder ignore-unresolvable="true" location="file:${user.dir}/config/app.properties" />
+<!--	<context:property-placeholder ignore-unresolvable="true" location="classpath:config/app.properties" />-->
+
+	<bean id="springContextHolder" class="com.dne.core.util.SpringContextHolder"/>
+	
+	<!--Mybatis配置  -->
+	<import resource="spring-mybatis.xml"/>
+
+	<bean id="appProperties"
+		  class="org.springframework.beans.factory.config.PropertiesFactoryBean">
+		<property name="locations">
+			<list>
+				<value>file:${user.dir}/config/app.properties</value>
+<!--				<value>classpath:config/app.properties</value>-->
+			</list>
+		</property>
+	</bean>
+</beans>

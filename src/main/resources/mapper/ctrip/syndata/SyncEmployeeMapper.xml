@@ -1,0 +1,255 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.dne.ctrip.syndata.dao.EmployeeDao">
+
+
+    <resultMap id="employeeInfoMap" type="com.dne.ctrip.entity.EmployeeInfo" >
+        <result column="id" property="id" jdbcType="INTEGER"/>
+        <result column="SF_USER_ID" jdbcType="INTEGER" property="sfUserId" />
+        <result column="CWID" jdbcType="VARCHAR" property="cwid" />
+        <result column="GENDER" jdbcType="VARCHAR" property="gender" />
+        <result column="FIRST_NAME" jdbcType="VARCHAR" property="firstName" />
+        <result column="LAST_NAME" jdbcType="VARCHAR" property="lastName" />
+        <result column="CHINESE_NAME" jdbcType="VARCHAR" property="chineseName" />
+        <result column="RANK_NAME" jdbcType="VARCHAR" property="rankName" />
+        <result column="COMPANY_CODE" jdbcType="VARCHAR" property="companyCode" />
+        <result column="COST_CENTER" jdbcType="VARCHAR" property="costCenter" />
+        <result column="COUNTRY" jdbcType="VARCHAR" property="country" />
+        <result column="EMAIL" jdbcType="VARCHAR" property="email" />
+        <result column="JOIN_DATE" jdbcType="TIMESTAMP" property="joinDate" />
+        <result column="ORG_ID" jdbcType="INTEGER" property="orgId" />
+        <result column="POSITION_ID" jdbcType="VARCHAR" property="positionId" />
+        <result column="ORG_TXT" jdbcType="VARCHAR" property="orgTxt" />
+        <result column="POSITION_TXT" jdbcType="VARCHAR" property="positionTxt" />
+        <result column="MARK_DELETED" jdbcType="VARCHAR" property="markDeleted" />
+        <result column="DIMISSION_DATE" jdbcType="TIMESTAMP" property="dimissionDate" />
+        <result column="LOCATION" jdbcType="VARCHAR" property="location" />
+        <result column="CREATED_DATE" jdbcType="TIMESTAMP" property="createdDate" />
+        <result column="LAST_MODIFIED_DATE" jdbcType="TIMESTAMP" property="lastModifiedDate" />
+    </resultMap>
+
+    <resultMap id="syncEmployeeInfoMap" type="com.dne.ctrip.entity.SyncEmployeeInfo"
+               extends="employeeInfoMap">
+        <result property="batchNo" column="BATCH_ID"/>
+        <result property="operateStatus" column="OPERATE_STATUS"/>
+    </resultMap>
+
+    <resultMap id="hrCentralEmployeeMap" type="com.dne.hrcentral.entity.HRCentralEmployee"
+               extends="InternalMapper.BaseEmployeeInfoMap">
+        <result property="userId" column="id"/>
+    </resultMap>
+
+    <sql id="selectEmployeeColumns">
+        SF_USER_ID,IPIN,CWID,GENDER,FIRST_NAME,LAST_NAME,CHINESE_NAME,RANK_NAME,
+        COMPANY_CODE,COST_CENTER,COUNTRY,JOIN_DATE,ORG_ID,ORG_TXT,POSITION_ID,POSITION_TXT,EMAIL,
+        DIMISSION_DATE,LOCATION,MARK_DELETED,CREATED_DATE,LAST_MODIFIED_DATE
+    </sql>
+
+    <sql id="selectHREmployeeColumns">
+        be.user_id as SF_USER_ID, be.IPIN, be.CWID,
+        CASE WHEN be.GENDER = 1 THEN 'Male' ELSE 'Female' END AS GENDER,
+        be.bi_first_name as first_name, be.bi_last_name as last_name,
+        RTRIM(be.el_last_name) + RTRIM(be.el_first_name) as CHINESE_NAME,
+        be.COMPANY_CODE, be.COST_CENTER, be.ORG as ORG_ID, LTRIM(RTRIM(be.ORG_TEXT)) as ORG_TXT,
+        be.POSITION as POSITION_ID, LTRIM(RTRIM(be.POSITION_TEXT)) as POSITION_TXT,
+        be.email_address as email, be.leaving_date as DIMISSION_DATE, be.WORKING_LOCATION as LOCATION,
+        CASE WHEN be.DEL_FLAG = 1 then 'Y' ELSE 'N' END as MARK_DELETED,
+        be.create_date, be.last_modify_date
+    </sql>
+
+    <update id="updateSyncEmployeeStatus" parameterType="java.util.Map">
+        update b_ctrip_sync_employee set SYNC_STATUS = #{syncStatus}
+            WHERE BATCH_ID= #{batchNo}
+                AND
+                <include refid="InternalMapper.forEachConditionSql">
+                    <property name="column" value="cwid"/>
+                </include>
+    </update>
+
+
+    <update id="saveOrUpdateEmployeeInfo" parameterType="java.lang.String">
+        MERGE into b_ctrip_employee  a
+        USING( SELECT <include refid="selectEmployeeColumns"/>
+            FROM b_ctrip_sync_employee WHERE BATCH_ID=#{batchNo}) as b
+        ON (a.CWID = b.CWID)
+        WHEN MATCHED THEN
+             UPDATE SET a.GENDER = b.GENDER, a.FIRST_NAME = b.FIRST_NAME,
+                    a.LAST_NAME = b.LAST_NAME, a.CHINESE_NAME = b.CHINESE_NAME,
+                    a.COMPANY_CODE = b.COMPANY_CODE, a.COST_CENTER = b.COST_CENTER,
+                    a.ORG_ID = b.ORG_ID, a.ORG_TXT = b.ORG_TXT, a.POSITION_ID = b.POSITION_ID,
+                    a.POSITION_TXT = b.POSITION_TXT, a.EMAIL = b.EMAIL,
+                    a.LOCATION = b.LOCATION, a.RANK_NAME = b.RANK_NAME, a.MARK_DELETED = b.MARK_DELETED,
+                    a.LAST_MODIFIED_DATE = GETDATE()
+        WHEN NOT MATCHED BY TARGET THEN
+            INSERT (SF_USER_ID, IPIN, CWID, GENDER, FIRST_NAME, LAST_NAME,
+                CHINESE_NAME, COMPANY_CODE, COST_CENTER, ORG_ID, ORG_TXT, POSITION_ID,
+                POSITION_TXT,EMAIL, DIMISSION_DATE, LOCATION, MARK_DELETED,RANK_NAME,
+                CREATED_DATE, LAST_MODIFIED_DATE)
+            VALUES (b.SF_USER_ID, b.IPIN, b.CWID, b.GENDER, b.FIRST_NAME, b.LAST_NAME,
+                b.CHINESE_NAME, b.COMPANY_CODE, b.COST_CENTER, b.ORG_ID, b.ORG_TXT, b.POSITION_ID,
+                b.POSITION_TXT,b.EMAIL, b.DIMISSION_DATE, b.LOCATION, b.MARK_DELETED,b.RANK_NAME,
+                GETDATE(), GETDATE());
+    </update>
+
+    <insert id="batchSaveEmployeeInfo" parameterType="com.dne.ctrip.entity.EmployeeInfo">
+        INSERT INTO b_ctrip_employee(SF_USER_ID,IPIN,CWID,GENDER,FIRST_NAME,LAST_NAME,CHINESE_NAME,
+            COMPANY_CODE,COST_CENTER,COUNTRY,JOIN_DATE,ORG_ID,ORG_TXT,POSITION_ID,POSITION_TXT,EMAIL,RANK_NAME,
+            DIMISSION_DATE,LOCATION,MARK_DELETED,CREATED_DATE,LAST_MODIFIED_DATE)
+        VALUES
+        <foreach collection="employees" item="item" index="index" separator="," >
+            (#{item.sfUserId},#{item.ipin},#{item.cwid},#{item.gender},#{item.firstName},#{item.lastName},#{item.chineseName},
+            #{item.companyCode},#{item.costCenter},#{item.country},#{item.joinDate, jdbcType=TIMESTAMP},
+            #{item.orgId},#{item.orgTxt},#{item.positionId},#{item.positionTxt},#{item.email},#{item.rankName},
+            #{item.dimissionDate},#{item.location},#{item.markDeleted},getdate(),getdate())
+        </foreach>
+    </insert>
+
+    <insert id="batchSaveSyncEmployeeInfo" parameterType="com.dne.ctrip.entity.SyncEmployeeInfo">
+        INSERT INTO b_ctrip_sync_employee(BATCH_ID,OPERATE_STATUS,
+            SF_USER_ID,IPIN,CWID,GENDER,FIRST_NAME,LAST_NAME,CHINESE_NAME,
+            COMPANY_CODE,COST_CENTER,COUNTRY,JOIN_DATE,ORG_ID,ORG_TXT,POSITION_ID,POSITION_TXT,EMAIL,RANK_NAME,
+            DIMISSION_DATE,LOCATION,MARK_DELETED,CREATED_DATE,LAST_MODIFIED_DATE,BATCH_GENERATED_DATE)
+        VALUES
+        <foreach collection="employees" item="item" index="index" separator="," >
+            (#{item.batchNo},#{item.operateStatus},#{item.sfUserId},#{item.ipin},#{item.cwid},
+            #{item.gender},#{item.firstName},#{item.lastName},#{item.chineseName},
+            #{item.companyCode},#{item.costCenter},#{item.country},#{item.joinDate, jdbcType=TIMESTAMP},
+            #{item.orgId},#{item.orgTxt},#{item.positionId},#{item.positionTxt},#{item.email},#{item.rankName},
+            #{item.dimissionDate},#{item.location},#{item.markDeleted},getdate(),getdate(),getdate())
+        </foreach>
+    </insert>
+
+
+    <select id="getEmployeeRankNameByType" parameterType="java.lang.String" resultType="com.dne.ctrip.entity.EmployeeRankName">
+        SELECT ID, CWID, RANK_NAME as rankName
+            FROM
+        <if test="type == 'current'">
+            b_ctrip_employee_rank_name_map
+        </if>
+        <if test="type == 'prev'">
+            b_ctrip_prev_employee_rank_name_map
+        </if>
+    </select>
+
+    <insert id="savePrevEmployeeRankName">
+        INSERT into b_ctrip_prev_employee_rank_name_map (CWID, RANK_NAME)
+            SELECT cwid, RANK_NAME FROM b_ctrip_employee_rank_name_map
+    </insert>
+
+    <delete id="deleteAllPrevEmployeeRankName">
+        DELETE FROM b_ctrip_prev_employee_rank_name_map
+    </delete>
+
+
+    <select id="getEmployeeInfoByType" parameterType="java.lang.String" resultMap="employeeInfoMap">
+        SELECT
+        <if test="type == 'create'">
+            <include refid="selectHREmployeeColumns"/>
+            FROM B_HR_EMPLOYEE be
+        </if>
+        <if test="type == 'change'">
+            <include refid="selectEmployeeColumns"/>
+           FROM b_ctrip_employee be
+        </if>
+        <where>
+              AND ISNULL(LTRIM(RTRIM(be.cwid)),'') != '' AND be.cwid != 'NA'
+              <if test="type == 'create'">
+                  AND be.CWID NOT IN ( SELECT DISTINCT CWID FROM b_ctrip_employee )
+              </if>
+              <if test="type == 'change'">
+                  AND be.CWID IN ( SELECT DISTINCT CWID FROM B_HR_EMPLOYEE )
+              </if>
+        </where>
+    </select>
+    
+
+    <select id="getEmployeeInfoCount" resultType="java.lang.Integer">
+        SELECT count(1) FROM b_ctrip_employee
+    </select>
+
+    <select id="getSyncEmployeeInfoByBatchNo" resultMap="syncEmployeeInfoMap" parameterType="java.lang.String">
+        SELECT BATCH_ID,OPERATE_STATUS,SYNC_STATUS,<include refid="selectEmployeeColumns"/>
+            FROM b_ctrip_sync_employee WHERE BATCH_ID=#{batchNo}
+    </select>
+
+
+    <select id="syncEmployeeInfo" parameterType="java.lang.String" statementType="CALLABLE">
+        <![CDATA[
+            {call PROC_CTRIP_SYNC_HR_CENTRAL_EMPLOYEE_INFO(#{batchNo,mode=IN,jdbcType=VARCHAR})}
+        ]]>
+    </select>
+
+    <!--
+    <select id="syncEmployeeInfo" parameterType="java.lang.String" statementType="CALLABLE">
+        <![CDATA[
+            {call PROC_CTRIP_SYNC_USER_EXTENSION_INFO(#{batchNo,mode=IN,jdbcType=VARCHAR})}
+        ]]>
+    </select>
+    -->
+
+    <!--hr central employee -->
+    <select id="getHREmployeeInfoCount" resultType="java.lang.Integer">
+        SELECT count(1) FROM b_hr_employee
+    </select>
+    
+    <select id="getHREmployeeInfoByType" parameterType="java.lang.String" resultMap="hrCentralEmployeeMap">
+        SELECT
+            user_id,pid,ipin,cwid,bi_last_name,bi_first_name,
+            el_last_name,el_first_name,gender,employee_status,company_code,
+            org,org_text,position,position_text,cost_center,employee_group,
+            staff_type,personal_area,personal_area_text,business_address,working_location,
+            company_entry_date,group_entry_date,resource_manager,admin_manager,
+            leaving_date,vendor_code,action,email_address,del_flag,last_modify_date,create_date
+        FROM
+        <if test="type == 'current'">
+            b_hr_employee
+        </if>
+        <if test="type == 'prev'">
+            b_hr_perv_employee
+        </if>
+    </select>
+
+    <delete id="deleteAllHREmployeeInfo">
+        DELETE FROM b_hr_employee
+    </delete>
+
+    <delete id="deleteAllPrevHREmployeeInfo">
+        DELETE FROM b_hr_perv_employee
+    </delete>
+
+    <insert id="savePrevHREmployeeInfo">
+        INSERT INTO b_hr_perv_employee(user_id,pid,ipin,cwid,bi_last_name,bi_first_name,
+        el_last_name,el_first_name,gender,employee_status,company_code,
+        org,org_text,position,position_text,cost_center,employee_group,
+        staff_type,personal_area,personal_area_text,business_address,working_location,
+        company_entry_date,group_entry_date,resource_manager,admin_manager,
+        leaving_date,vendor_code,action,email_address,del_flag,last_modify_date,create_date)
+        SELECT
+            user_id,pid,ipin,cwid,bi_last_name,bi_first_name,
+            el_last_name,el_first_name,gender,employee_status,company_code,
+            org,org_text,position,position_text,cost_center,employee_group,
+            staff_type,personal_area,personal_area_text,business_address,working_location,
+            company_entry_date,group_entry_date,resource_manager,admin_manager,
+            leaving_date,vendor_code,action,email_address,del_flag,last_modify_date,create_date
+        FROM b_hr_employee
+    </insert>
+
+    <insert id="batchSaveHREmployeeInfo">
+        INSERT INTO b_hr_employee(user_id,pid,ipin,cwid,bi_last_name,bi_first_name,
+        el_last_name,el_first_name,gender,employee_status,company_code,
+        org,org_text,position,position_text,cost_center,employee_group,
+        staff_type,personal_area,personal_area_text,business_address,working_location,
+        company_entry_date,group_entry_date,resource_manager,admin_manager,
+        leaving_date,vendor_code,action,email_address,del_flag,last_modify_date,create_date)
+        VALUES
+        <foreach collection="employees" item="item" index="index" separator="," >
+            (#{item.userId},#{item.pid},#{item.ipin},#{item.cwid},#{item.biLastName},#{item.biFirstName},
+            #{item.elLastName},#{item.elFirstName},#{item.gender},#{item.employeeStatus},#{item.companyCode},
+            #{item.orgId},#{item.orgTxt},#{item.positionId},#{item.positionTxt},#{item.costCenter},#{item.employeeGroup},
+            #{item.staffType}, #{item.personalArea}, #{item.personalAreaText}, #{item.businessAddress}, #{item.workingLocation},
+            #{item.companyEntryDate,jdbcType=TIMESTAMP},#{item.groupEntryDate,jdbcType=TIMESTAMP},#{item.resourceManager},#{item.adminManager},
+            #{item.leavingDate,jdbcType=TIMESTAMP},#{item.vendorCode},#{item.action},#{item.email},#{item.delFlag},getdate(),getdate())
+        </foreach>
+    </insert>
+
+</mapper>

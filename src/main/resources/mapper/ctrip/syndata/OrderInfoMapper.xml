@@ -1,0 +1,197 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.dne.ctrip.syndata.dao.OrderInfoDao">
+    <resultMap id="OrderResultMap" type="com.dne.ctrip.entity.OrderInfo">
+        <id property="id" column="id" />
+        <result property="orderId" column="order_id" />
+        <result property="createTime" column="create_time" />
+        <result property="useCarType" column="use_car_type" />
+        <result property="requireLevel" column="require_level" />
+        <result property="city" column="city" />
+        <result property="cityName" column="city_name" />
+        <result property="startName" column="start_name" />
+        <result property="endName" column="end_name" />
+        <result property="departureTime" column="departure_time" />
+        <result property="finishTime" column="finish_time" />
+        <result property="status" column="status" />
+        <result property="payType" column="pay_type" />
+        <result property="memberId" column="member_id" />
+        <result property="payTime" column="pay_time" />
+        <result property="totalPrice" column="total_price" />
+        <result property="actualPrice" column="actual_price" />
+        <result property="servicesFee" column="services_fee" />
+        <result property="postServiceFree" column="post_service_free" />
+        <result property="expressFee" column="express_fee" />
+        <result property="carValueAddFee" column="car_value_add_fee" />
+        <result property="carAddTaxAmount" column="car_add_tax_amount" />
+        <result property="penaltyFee" column="penalty_fee" />
+        <result property="companyPay" column="company_pay" />
+        <result property="personalPay" column="personal_pay" />
+        <result property="isInvoice" column="is_invoice" />
+        <result property="callPhone" column="call_phone" />
+        <result property="passengerPhone" column="passenger_phone" />
+        <result property="firstCreateDate" column="first_create_date" />
+        <result property="updateDate" column="update_date" />
+        <result property="batchNo" column="batch_no" />
+        <result property="remark" column="remark" />
+        <result property="companyCode" column="company_code" />
+        <result property="costCenter" column="cost_center" />
+        <result property="delType" column="del_type" />
+    </resultMap>
+
+    <select id="getOrderReportList" resultType="com.dne.ctrip.entity.OrderReportInfo" parameterType="java.util.Map">
+        select re.cwid,re.ccCwid, re.ccCode,re.employeeName,re.status,re.payType,re.createTime,re.startTime,re.endTime,
+        re.totalPrice,re.actualPrice,
+        re.orderId,re.cityName,re.startName,re.endName,re.remark,re.distance,re.category,re.regulation,re.payTypeDesc
+            FROM (
+            SELECT
+                ui.cwid as cwid,
+                uex.cwid AS ccCwid,
+                ue.COST_CENTER as ccCode,
+                ui.first_name + ' ' + ui.last_name AS employeeName,
+                oi.status,
+                oi.pay_type as payType,
+                convert(varchar(100),oi.create_time,120) as createTime,
+                convert(varchar(100),oi.departure_time,120) as startTime,
+                convert(varchar(100),oi.finish_time,120) as endTime,
+                convert(decimal(18,2),oi.total_price) as totalPrice,
+                oi.actual_price as actualPrice,
+                oi.order_id as orderId,
+                oi.city_name as cityName,
+                oi.start_name as startName,
+                oi.end_name as endName,
+                oi.remark as remark,
+                oi.normal_distance as distance,
+                dm.map_name as category,
+                dmm.map_name as regulation,
+                case oi.pay_type
+                when 'ACCNT' then '企业支付'
+                when 'CCARD' then '信用卡'
+                when 'CASH' then '现金'
+                end as payTypeDesc
+            FROM
+            b_ctrip_order_info oi
+            LEFT JOIN b_ctrip_employee ui ON ui.CWID  = oi.member_id
+            LEFT JOIN b_hr_employee ue ON ue.CWID = ui.cwid and ue.email_address not like'%.ext@bayer%'
+            LEFT JOIN (SELECT cwid,ipin,email_address FROM b_hr_employee) uex ON uex.ipin = ue.admin_manager and uex.email_address  not like'%.ext@bayer%'
+            left join B_CTRIP_MAPPING dm on oi.require_level=dm.map_value and dm.MAP_TYPE = 'REQUIRE_LEVEL'
+            left join B_CTRIP_MAPPING dmm on oi.use_car_type = dmm.map_value and  dmm.MAP_TYPE = 'USE_CAR_TYPE'
+                WHERE 1 = 1
+                AND oi.del_flag = 'N'
+                <![CDATA[	AND ( oi.create_time > #{startDate} and  oi.create_time <= #{endDate}) ]]>
+            UNION
+            SELECT
+                ui.cwid as cwid,
+                'travelmanagement_apac@bayer.com,greg.cong@bayer.com' AS ccCwid,
+                ue.COST_CENTER as ccCode,
+                ui.first_name + ' ' + ui.last_name AS employeeName,
+                oi.status,
+                oi.pay_type as payType,
+                convert(varchar(100),oi.create_time,120) as createTime,
+                convert(varchar(100),oi.departure_time,120) as startTime,
+                convert(varchar(100),oi.finish_time,120) as endTime,
+                convert(decimal(18,2),oi.total_price) as totalPrice,
+                oi.actual_price as actualPrice,
+                oi.order_id as orderId,
+                oi.city_name as cityName,
+                oi.start_name as startName,
+                oi.end_name as endName,
+                oi.remark as remark,
+                oi.normal_distance as distance,
+                dm.map_name as category,
+                dmm.map_name as regulation,
+                case oi.pay_type
+                when 'ACCNT' then '企业支付'
+                when 'CCARD' then '信用卡'
+                when 'CASH' then '现金'
+                end as payTypeDesc
+            FROM
+            b_ctrip_order_info oi
+            LEFT JOIN b_ctrip_employee ui ON ui.CWID  = oi.member_id
+            LEFT JOIN B_USER_EXTENSION ue ON ue.CWID = ui.cwid and ue.EMAIL not like'%.ext@bayer%'
+            left join B_CTRIP_MAPPING dm on oi.require_level=dm.map_value and dm.MAP_TYPE = 'REQUIRE_LEVEL'
+            left join B_CTRIP_MAPPING dmm on oi.use_car_type = dmm.map_value and  dmm.MAP_TYPE = 'USE_CAR_TYPE'
+            WHERE 1 = 1
+            AND oi.del_flag = 'N'
+            <![CDATA[	AND ( oi.create_time > #{startDate} and  oi.create_time <= #{endDate}) ]]>
+            and (ue.SUPERVISOR_ID =0 or ue.SUPERVISOR_ID is null)
+            )  as re ORDER BY re.cwid,re.createTime
+    </select>
+
+
+    <select id="getUpdSyncOrderInfo" resultMap="OrderResultMap">
+        select a.order_id,a.create_time,a.use_car_type,a.require_level,
+            a.city,a.city_name,a.start_name,a.end_name,a.departure_time,a.finish_time,
+            a.status,a.pay_type,a.member_id,a.del_type,a.pay_time,a.normal_distance,a.total_price,
+            a.actual_price,a.company_pay,a.personal_pay,a.is_invoice,
+            a.call_phone,a.passenger_phone,a.batch_no,a.remark,a.cost_center,a.company_code
+        from b_ctrip_sync_order a,b_ctrip_order_info b
+        where a.order_id=b.order_id and a.del_type=b.del_type and a.batch_no=#{batchNo}
+    </select>
+
+    <update id="updOrderInfo" parameterType="java.util.Map">
+        <foreach collection="orders" item="item" separator=";">
+            update b_ctrip_order_info
+            <set>
+                create_time=#{item.createTime , jdbcType = TIMESTAMP},
+                use_car_type=#{item.useCarType},require_level=#{item.requireLevel},
+                city=#{item.city},city_name=#{item.cityName},
+                start_name=#{item.startName},end_name=#{item.endName},
+                departure_time=#{item.departureTime , jdbcType = TIMESTAMP},
+                finish_time=#{item.finishTime ,jdbcType=TIMESTAMP},status=#{item.status},
+                pay_type=#{item.payType},member_id=#{item.memberId},del_type=#{item.delType},
+                pay_time=#{item.payTime ,jdbcType=TIMESTAMP}, normal_distance=#{item.normalDistance},
+                total_price=#{item.totalPrice},actual_price=#{item.actualPrice},
+                services_fee=#{item.servicesFee}, post_service_free=#{item.postServiceFree},
+                express_fee=#{item.expressFee},car_value_add_fee=#{item.carValueAddFee},
+                car_add_tax_amount=#{item.carAddTaxAmount},penalty_fee=#{item.penaltyFee},
+                company_pay=#{item.companyPay},personal_pay=#{item.personalPay},is_invoice=#{item.isInvoice},
+                call_phone=#{item.callPhone},passenger_phone=#{item.passengerPhone},batch_no=#{batchNo},
+                update_date=getdate(),remark=#{item.remark},cost_center=#{item.costCenter},company_code=#{item.companyCode}
+            </set>
+            where order_id = #{item.orderId} and del_type=#{item.delType}
+        </foreach>
+    </update>
+
+
+    <insert id="addSyncOrder" parameterType="com.dne.ctrip.entity.OrderInfo">
+        insert into b_ctrip_sync_order(order_id,create_time,use_car_type,require_level,
+            city,city_name,start_name,end_name,departure_time,finish_time,status,pay_type,
+            member_id,del_type,pay_time,normal_distance,total_price,actual_price,
+            services_fee,post_service_free,express_fee,car_value_add_fee,car_add_tax_amount,penalty_fee,
+            company_pay,personal_pay,is_invoice,call_phone, passenger_phone,
+            batch_no,del_flag,first_create_date,remark,company_code,cost_center)
+        VALUES
+        <foreach collection="items" item="item" index="index" separator="," >
+            (#{item.orderId},#{item.createTime,jdbcType=TIMESTAMP},#{item.useCarType},
+            #{item.requireLevel},#{item.city},#{item.cityName},#{item.startName},#{item.endName},
+            #{item.departureTime,jdbcType=TIMESTAMP},#{item.finishTime,jdbcType = TIMESTAMP},
+            #{item.status},#{item.payType},#{item.memberId},#{item.delType},#{item.payTime , jdbcType = TIMESTAMP},
+            #{item.normalDistance},#{item.totalPrice},#{item.actualPrice},
+            #{item.servicesFee},#{item.postServiceFree},#{item.expressFee},#{item.carValueAddFee},
+            #{item.carAddTaxAmount},#{item.penaltyFee},#{item.companyPay},#{item.personalPay}, #{item.isInvoice},#{item.callPhone},
+            #{item.passengerPhone},#{item.batchNo},'N',getdate(), #{item.remark},
+            #{item.companyCode},#{item.costCenter})
+        </foreach>
+    </insert>
+
+    <insert id="addOrderInfo">
+        insert into b_ctrip_order_info(order_id,create_time,use_car_type,require_level,
+            city,city_name,start_name,end_name,departure_time,finish_time,status,pay_type,
+            member_id,del_type,pay_time,normal_distance,total_price,actual_price,
+            services_fee,post_service_free,express_fee,car_value_add_fee,car_add_tax_amount,penalty_fee,
+            company_pay, personal_pay, is_invoice,call_phone,passenger_phone,batch_no,del_flag,
+            first_create_date,remark,company_code,cost_center)
+        select order_id,create_time,use_car_type,require_level,city,city_name,
+            start_name,end_name,departure_time,finish_time,status,pay_type,member_id,del_type,
+            pay_time,normal_distance,total_price,actual_price,
+            services_fee,post_service_free,express_fee,car_value_add_fee,car_add_tax_amount,penalty_fee,
+            company_pay,personal_pay, is_invoice, call_phone,passenger_phone,batch_no,'N',getdate(),remark,
+            company_code,cost_center
+        from b_ctrip_sync_order a
+        where a.del_flag='N' and a.batch_no=#{batchNo}
+            and not exists(select 1 from b_ctrip_order_info b
+                where a.order_id=b.order_id and a.del_type= b.del_type and a.batch_no=#{batchNo})
+    </insert>
+
+</mapper>

@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.dne.core.basic.dao.JobStatusDao">
+
+    <resultMap id="jobStatusMap" type="com.dne.core.basic.entity.JobStatus">
+        <id property="id" column="id" />
+        <result column="JOB_NAME" property="jobName" />
+        <result column="RUN_STATUS" property="runStatus" />
+        <result column="BATCH_ID" property="batchId" />
+        <result column="ERROR_CODE" property="errorCode" />
+        <result column="ERROR_MESSAGE" property="errorMessage" />
+        <result column="BEGIN_TIME" property="beginTime" />
+        <result column="END_TIME" property="endTime" />
+        <result column="CREATED_DATE" property="createdDate" />
+        <result column="LAST_MODIFIED_DATE" property="lastModifiedDate" />
+    </resultMap>
+
+    <resultMap id="jobStatusDetailMap" type="com.dne.core.basic.entity.JobStatusDetail">
+        <id property="id" column="ID" />
+        <result column="JOB_NAME" property="jobName" />
+        <result column="BATCH_ID" property="batchId" />
+        <result column="REF_ID" property="refId" />
+        <result column="DETAIL_MESSAGE" property="detailMessage" />
+        <result column="CREATED_DATE" property="createdDate" />
+        <result column="LAST_MODIFIED_DATE" property="lastModifiedDate" />
+    </resultMap>
+
+    <select id="getJobStatus" resultMap="jobStatusMap">
+        SELECT id, job_name, run_status, BATCH_ID, begin_time,
+                end_time, CREATED_DATE, LAST_MODIFIED_DATE
+        FROM b_ctrip_job_status
+            WHERE job_name =#{jobName}
+    </select>
+
+    <select id="getJobStatusDetail" resultMap="jobStatusDetailMap">
+        SELECT ID,JOB_NAME,BATCH_ID,REF_ID,DETAIL_MESSAGE,CREATED_DATE,LAST_MODIFIED_DATE
+            FROM b_ctrip_job_status_detail
+        WHERE JOB_NAME = #{jobName} AND BATCH_ID = #{batchId}
+    </select>
+
+    <insert id="saveJobStatus" useGeneratedKeys="true" parameterType="com.dne.core.basic.entity.JobStatus">
+        INSERT INTO b_ctrip_job_status (job_name, run_status,ERROR_CODE,ERROR_MESSAGE, BATCH_ID, begin_time,
+        end_time, CREATED_DATE, LAST_MODIFIED_DATE)
+        VALUES(#{jobName}, #{runStatus},#{errorCode},#{errorMessage}, #{batchId}, #{beginTime},
+        #{endTime}, #{createdDate}, #{lastModifiedDate})
+    </insert>
+
+    <update id="updateJobStatus" parameterType="com.dne.core.basic.entity.JobStatus">
+        UPDATE b_ctrip_job_status
+        SET run_status=#{runStatus},ERROR_CODE=#{errorCode},ERROR_MESSAGE=#{errorMessage},
+        BATCH_ID=#{batchId},begin_time=#{beginTime}, end_time=#{endTime}, LAST_MODIFIED_DATE=#{lastModifiedDate}
+        WHERE job_name = #{jobName}
+    </update>
+
+    <insert id="batchSaveStatusDetail">
+        INSERT INTO b_ctrip_job_status_detail(JOB_NAME,BATCH_ID,REF_ID,DETAIL_MESSAGE,CREATED_DATE,LAST_MODIFIED_DATE)
+        VALUES
+        <foreach collection="details" item="item" index="index" separator="," >
+            (#{item.jobName},#{item.batchId},#{item.refId},#{item.detailMessage},getdate(),getdate())
+        </foreach>
+    </insert>
+</mapper>

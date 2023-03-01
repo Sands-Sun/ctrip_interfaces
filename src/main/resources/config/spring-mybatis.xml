@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:p="http://www.springframework.org/schema/p"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:aop="http://www.springframework.org/schema/aop" xmlns:tx="http://www.springframework.org/schema/tx"
+	xmlns:util="http://www.springframework.org/schema/util"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-4.0.xsd
+    http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-4.0.xsd
+    http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx-4.0.xsd
+    http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-4.0.xsd
+    http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util-4.0.xsd">
+
+	<!-- datasource共同部分 -->
+	<bean id="datasource-common" abstract="true">
+		<property name="driverClassName" value="${jdbc.driverClassName}" />
+		<!-- 初始化时建立物理连接的个数 -->
+		<property name="initialSize" value="${jdbc.pool.init}" />
+		<!-- 最小连接池数量 -->
+		<property name="minIdle" value="${jdbc.pool.minIdle}" />
+		<!-- 最大连接池数量 -->
+		<property name="maxActive" value="${jdbc.pool.maxActive}" />
+		<!-- 配置获取连接等待超时的时间  -->
+		<property name="maxWait" value="60000" />
+		<!-- 自动清除无用连接 -->
+		<property name="removeAbandoned" value="true" />
+		<!-- 清除无用连接的等待时间 -->
+		<property name="removeAbandonedTimeout" value="180" />
+		<!-- 配置间隔多久才进行一次检测，检测需要关闭的空闲连接，单位是毫秒 -->
+		<property name="timeBetweenEvictionRunsMillis" value="60000" />
+		<!-- 配置一个连接在池中最小生存的时间，单位是毫秒 -->
+		<property name="minEvictableIdleTimeMillis" value="300000" />
+		<!-- 申请连接的时候检测，建议配置为true，不影响性能，并且保证安全性 -->
+		<property name="testWhileIdle" value="${jdbc.pool.testWhileIdle}" />
+		<!-- 验证连接有效与否的SQL，不同的数据配置不同 -->
+		<property name="validationQuery" value="${jdbc.pool.validationQuery}" />
+		<!-- 配置监控统计拦截的filters -->
+		<property name="filters" value="${jdbc.pool.filters}" />
+		<!-- 连接属性 -->
+		<property name="connectionProperties" value="clientEncoding=UTF-8"/>
+	</bean>
+
+	<bean id="masterDataSource" class="com.alibaba.druid.pool.DruidDataSource"
+		  parent="datasource-common" init-method="init" destroy-method="close">
+		<!-- 基本属性 driver、 url、user、password -->
+		<property name="url" value="${jdbc.url}" />
+		<property name="username" value="${jdbc.username}" />
+		<property name="password" value="${jdbc.password}" />
+	</bean>
+
+	<bean id="hrCentralDataSource" class="com.alibaba.druid.pool.DruidDataSource"
+		  parent="datasource-common" destroy-method="close">
+		<property name="url" value="${jdbc.hrcentraldb.url}" />
+		<property name="username" value="${jdbc.hrcentraldb.username}" />
+		<property name="password" value="${jdbc.hrcentraldb.password}" />
+	</bean>
+
+	<!-- mybatis文件配置，扫描所有mapper文件 -->
+	<bean id="sqlSessionFactory" class="org.mybatis.spring.SqlSessionFactoryBean">
+        <property name="dataSource" ref="masterDataSource" />
+        <property name="typeAliasesPackage" value="com.dne"/>
+        <property name="typeAliasesSuperType" value="com.dne.core.basic.entity.BaseEntity"/>
+		<property name="mapperLocations">
+			<list>
+				<value>classpath:mapper/*.xml</value>
+				<value>classpath:mapper/base/*.xml</value>
+				<value>classpath:mapper/mail/*.xml</value>
+				<value>classpath:mapper/ctrip/**/*.xml</value>
+			</list>
+		</property>
+        <property name="configLocation" value="classpath:config/mybatis-config.xml"/>
+    </bean>
+
+	<bean id="hrCentralSqlSessionFactory" class="org.mybatis.spring.SqlSessionFactoryBean">
+		<property name="dataSource" ref="hrCentralDataSource" />
+		<property name="typeAliasesPackage" value="com.dne"/>
+		<property name="typeAliasesSuperType" value="com.dne.core.basic.entity.BaseEntity"/>
+		<property name="mapperLocations">
+			<list>
+				<value>classpath:mapper/*.xml</value>
+				<value>classpath:mapper/central/**/*.xml</value>
+			</list>
+		</property>
+		<property name="configLocation" value="classpath:config/mybatis-config.xml"/>
+	</bean>
+
+	<!-- spring与mybatis整合配置，扫描所有dao -->
+	<bean class="org.mybatis.spring.mapper.MapperScannerConfigurer">
+		<property name="basePackage" value="com.dne.core.**.dao,com.dne.didi.**.dao,com.dne.ctrip.**.dao" />
+		<property name="sqlSessionFactoryBeanName" value="sqlSessionFactory"/>
+	</bean>
+
+	<bean class="org.mybatis.spring.mapper.MapperScannerConfigurer">
+		<property name="basePackage" value="com.dne.hrcentral.**.dao" />
+		<property name="sqlSessionFactoryBeanName" value="hrCentralSqlSessionFactory"/>
+	</bean>
+	
+	<!-- 对数据源进行事务管理 -->
+	<bean id="transactionManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+		<property name="dataSource" ref="masterDataSource" />
+	</bean>
+	
+	<!-- 事务注解支持
+    <tx:annotation-driven transaction-manager="transactionManager" proxy-target-class="true"/> -->
+    
+    <!--配置事物传播特性 -->
+	<tx:advice id="txAdvice" transaction-manager="transactionManager">
+		<tx:attributes>
+		    <tx:method name="add*" propagation="REQUIRED" />
+		    <tx:method name="save*" propagation="REQUIRED" />
+		    <tx:method name="create*" propagation="REQUIRED" />
+		    <tx:method name="insert*" propagation="REQUIRED" /> 
+			<tx:method name="upd*" propagation="REQUIRED" />
+			<tx:method name="merge*" propagation="REQUIRED" />  
+			<tx:method name="del*" propagation="REQUIRED" />
+			<tx:method name="remove*" propagation="REQUIRED" />  
+			<tx:method name="do*" propagation="REQUIRES_NEW" />
+            <tx:method name="*" propagation="SUPPORTS" read-only="true" />
+		</tx:attributes>
+	</tx:advice>
+
+	<!-- 配置事务过滤-->
+	<aop:config proxy-target-class="true">
+		<aop:pointcut id="methodPointcut" expression="bean(*Service)" />
+		<aop:advisor pointcut-ref="methodPointcut" advice-ref="txAdvice" order="2" />
+	</aop:config>
+</beans>

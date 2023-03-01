@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="InternalMapper">
+    <resultMap id="BaseEmployeeInfoMap" type="com.dne.hrcentral.entity.HRCentralEmployee">
+        <result property="pid" column="pid" javaType="java.lang.String" jdbcType="VARCHAR"/>
+        <result property="ipin" column="ipin" javaType="java.lang.String" jdbcType="VARCHAR"/>
+        <result property="cwid" column="cwid" javaType="java.lang.String" jdbcType="VARCHAR"/>
+        <result property="biLastName" column="bi_last_name" javaType="java.lang.String" jdbcType="VARCHAR"/>
+        <result property="biFirstName" column="bi_first_name" javaType="java.lang.String" jdbcType="VARCHAR"/>
+        <result property="elLastName" column="el_last_name" javaType="java.lang.String" jdbcType="VARCHAR"/>
+        <result property="elFirstName" column="el_first_name" javaType="java.lang.String" jdbcType="VARCHAR"/>
+        <result property="gender" column="gender" javaType="java.lang.String" jdbcType="VARCHAR"/>
+        <result property="employeeStatus" column="employee_status" javaType="java.lang.String" jdbcType="VARCHAR"/>
+        <result property="companyCode" column="company_code" javaType="java.lang.String" jdbcType="VARCHAR"/>
+        <result property="orgId" column="org" javaType="java.lang.Integer" jdbcType="INTEGER"/>
+        <result property="orgTxt" column="org_text" javaType="java.lang.String" jdbcType="VARCHAR"/>
+        <result property="positionId" column="position" javaType="java.lang.String" jdbcType="VARCHAR"/>
+        <result property="positionTxt" column="position_text" javaType="java.lang.String" jdbcType="VARCHAR"/>
+        <result property="costCenter" column="cost_center" javaType="java.lang.String" jdbcType="VARCHAR"/>
+        <result property="employeeGroup" column="employee_group" javaType="java.lang.String" jdbcType="VARCHAR"/>
+        <result property="staffType" column="staff_type" javaType="java.lang.String" jdbcType="VARCHAR"/>
+        <result property="personalArea" column="personal_area" javaType="java.lang.String" jdbcType="VARCHAR"/>
+        <result property="personalAreaText" column="personal_area_text" javaType="java.lang.String" jdbcType="VARCHAR"/>
+        <result property="businessAddress" column="business_address" javaType="java.lang.String" jdbcType="VARCHAR"/>
+        <result property="workingLocation" column="working_location" javaType="java.lang.String" jdbcType="VARCHAR"/>
+        <result property="companyEntryDate" column="company_entry_date" javaType="java.util.Date" jdbcType="TIMESTAMP"/>
+        <result property="groupEntryDate" column="group_entry_date" javaType="java.util.Date" jdbcType="TIMESTAMP"/>
+        <result property="resourceManager" column="resource_manager" javaType="java.lang.String" jdbcType="VARCHAR"/>
+        <result property="adminManager" column="admin_manager" javaType="java.lang.String" jdbcType="VARCHAR"/>
+        <result property="leavingDate" column="leaving_date" javaType="java.util.Date" jdbcType="TIMESTAMP"/>
+        <result property="vendorCode" column="vendor_code" javaType="java.lang.String" jdbcType="VARCHAR"/>
+        <result property="action" column="action" javaType="java.lang.String" jdbcType="VARCHAR"/>
+        <result property="email" column="email_address" javaType="java.lang.String" jdbcType="VARCHAR"/>
+        <result property="lastModifyDate" column="last_modify_date" javaType="java.util.Date" jdbcType="TIMESTAMP"/>
+        <result property="createDate" column="create_date" javaType="java.util.Date" jdbcType="TIMESTAMP"/>
+        <result property="delFlag" column="del_flag" javaType="java.lang.String" jdbcType="VARCHAR"/>
+    </resultMap>
+
+
+    <sql id="forEachConditionSql">
+        ${column} in
+        <foreach  item="item" index="index" collection="items" open="(" separator="," close=" )">
+            <!--                <if test="index != 0">-->
+            <!--                    <choose>-->
+            <!--                        <when test="index % 1000 == 999">) OR ${column} IN (</when>-->
+            <!--                        <otherwise>,</otherwise>-->
+            <!--                    </choose>-->
+            <!--                </if>-->
+            #{item}
+        </foreach>
+    </sql>
+</mapper>
