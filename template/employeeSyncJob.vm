@@ -1,8 +1,0 @@
-<b>Ctrip Employee synchronization results</b>
-
-Before running HR Employee information Count: ${beforeSyncTotalHRCentral}
-After running HR Employee information Count: ${afterSyncTotalHRCentral}
-Sync employee total: ${totalSync}
-Sync new create employee total: ${totalSyncNewCreate}
-Sync modify employee total: ${totalSyncModified}
-Sync delete employee total: ${totalSyncDeleted}
