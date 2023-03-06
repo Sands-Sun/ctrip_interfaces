@@ -1,0 +1,9 @@
+<b>Ctrip Order synchronization results</b>
+
+Previous batch no: ${prevBatchNo}
+Previous run status: #if($errorCode>0)${runStatus} error code: ${$errorCode} error message: ${errorMessage}${newLine}#else${runStatus} ${newLine}#end
+Order synchronization date: ${startDate} - ${endDate}
+Current Sync batch no: ${batchNo}
+Sync order total: ${syncOrderTotal}
+Add order num: ${addOrderNum}
+Update order num: ${updateOrderNum}

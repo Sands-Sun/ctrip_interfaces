@@ -1,0 +1,11 @@
+<b>Ctrip Employee synchronization results</b>
+
+Previous batch no: ${prevBatchNo}
+Previous run status: #if($errorCode>0)${runStatus} error code: ${$errorCode} error message: ${errorMessage}${newLine}#else${runStatus} ${newLine}#end
+Current Sync batch no: ${batchNo}
+Before running HR Employee information Count: ${beforeSyncTotalHRCentral}
+After running HR Employee information Count: ${afterSyncTotalHRCentral}
+Sync employee total: ${totalSync}
+Sync new create employee total: ${totalSyncNewCreate}
+Sync modify employee total: ${totalSyncModified}
+Sync delete employee total: ${totalSyncDeleted}

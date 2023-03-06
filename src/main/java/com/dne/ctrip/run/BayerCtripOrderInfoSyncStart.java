@@ -2,6 +2,7 @@ package com.dne.ctrip.run;
 
 import com.dne.core.common.CtripAbsRiverBiz;
 import com.dne.core.util.DateUtils;
+import com.dne.ctrip.mail.vo.OrderInfoSyncJobMailVo;
 import com.google.common.collect.Maps;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -10,10 +11,16 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.Map;
 
+import static com.dne.core.common.Constant.CTRIP_ORDER_INFO_SYNC_JOB_MAIL_TYPE;
+
 public class BayerCtripOrderInfoSyncStart extends CtripAbsBaseStart{
 
 
     private static final Logger log = LoggerFactory.getLogger(BayerCtripOrderInfoSyncStart.class);
+
+    public BayerCtripOrderInfoSyncStart() {
+        super(new OrderInfoSyncJobMailVo(CTRIP_ORDER_INFO_SYNC_JOB_MAIL_TYPE));
+    }
 
     public static void main(String[] args) {
         log.info("Bayer ctrip order sync start: " + Arrays.toString(args));
@@ -30,7 +37,8 @@ public class BayerCtripOrderInfoSyncStart extends CtripAbsBaseStart{
             dataMap.put("start_date", args[0]);
             dataMap.put("end_date", args[1]);
             BayerCtripOrderInfoSyncStart start = new BayerCtripOrderInfoSyncStart();
-            start.execute(riverBiz, dataMap, "Bayer ctrip order synchronized");
+            //[Bayer Notice] Bayer Ctrip Check Bill Statement Job
+            start.execute(riverBiz, dataMap);
         }
         log.info("Bayer didi order sync end.");
     }

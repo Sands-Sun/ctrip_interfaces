@@ -2,6 +2,8 @@ package com.dne.ctrip.mail.template;
 
 import com.dne.core.basic.entity.BaseEntity;
 import com.dne.core.util.Global;
+import com.dne.core.util.StringUtils;
+import com.dne.ctrip.mail.vo.BaseMailVo;
 import org.apache.velocity.VelocityContext;
 import org.apache.velocity.app.VelocityEngine;
 import org.slf4j.Logger;
@@ -9,6 +11,9 @@ import org.slf4j.LoggerFactory;
 
 import java.io.StringWriter;
 import java.lang.reflect.Field;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 public class CommonMailContent {
 	private static final Logger log = LoggerFactory.getLogger(CommonMailContent.class);
@@ -65,8 +70,11 @@ public class CommonMailContent {
 		return body;
 	}
 
-	public String getMailBody(BaseEntity bizBean, int type) {
-		setContextMap(bizBean);
+	public String getMailBody(BaseMailVo baseMailVo, int type) {
+		if(StringUtils.isNotEmpty(baseMailVo.getErrorLog())){
+			return baseMailVo.getErrorLog();
+		}
+		setContextMap(baseMailVo);
 		return getCommonTemplate(this.getTpath(), this.getTemplate());
 	}
 	 
@@ -74,22 +82,30 @@ public class CommonMailContent {
 		return getCommonTemplate(this.getTpath(), this.getTemplate());
 	}
 
-	public void setContextMap(BaseEntity bizBean) {
-		if (null != bizBean) {
-			Field[] fields = bizBean.getClass().getDeclaredFields();
-			if (fields != null) {
-				for (int i = 0; i < fields.length; i++) {
-					Field field = fields[i];
-					field.setAccessible(true);
-					try {
-						context.put(field.getName(), field.get(bizBean));
-					} catch (IllegalArgumentException e) {
-						e.printStackTrace();
-					} catch (IllegalAccessException e) {
-						e.printStackTrace();
+	public void setContextMap(BaseMailVo baseMailVo) {
+		if (null != baseMailVo) {
+			Class clazz = baseMailVo.getClass();
+			List<Field> fieldsList = new ArrayList<>();
+			while (clazz != null) {
+				Field[] declaredFields = clazz.getDeclaredFields();
+				fieldsList.addAll(Arrays.asList(declaredFields));
+				clazz = clazz.getSuperclass();
+			}
+			for (Field field : fieldsList) {
+				field.setAccessible(true);
+				String fieldName = field.getName();
+				try {
+					if ("attachment".equals(fieldName) ||
+							"mailType".equals(fieldName) ||
+							"mailTo".equals(fieldName)) {
+						continue;
 					}
+					context.put(field.getName(), field.get(baseMailVo));
+				} catch (IllegalArgumentException | IllegalAccessException e) {
+					e.printStackTrace();
 				}
 			}
+			context.put("newLine", "\n");
 		}
 	}
 

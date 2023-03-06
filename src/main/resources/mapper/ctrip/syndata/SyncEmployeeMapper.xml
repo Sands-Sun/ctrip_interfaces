@@ -49,7 +49,9 @@
         be.user_id as SF_USER_ID, be.IPIN, be.CWID,
         CASE WHEN be.GENDER = 1 THEN 'Male' ELSE 'Female' END AS GENDER,
         be.bi_first_name as first_name, be.bi_last_name as last_name,
-        RTRIM(be.el_last_name) + RTRIM(be.el_first_name) as CHINESE_NAME,
+        CASE WHEN UNICODE(be.el_last_name) BETWEEN 0x4e00 AND 0x9fa5
+            THEN CONCAT(RTRIM(be.el_last_name), RTRIM(be.el_first_name))
+        ELSE CONCAT(RTRIM(be.el_last_name),' ', RTRIM(be.el_first_name)) END AS CHINESE_NAME,
         be.COMPANY_CODE, be.COST_CENTER, be.ORG as ORG_ID, LTRIM(RTRIM(be.ORG_TEXT)) as ORG_TXT,
         be.POSITION as POSITION_ID, LTRIM(RTRIM(be.POSITION_TEXT)) as POSITION_TXT,
         be.email_address as email, be.leaving_date as DIMISSION_DATE, be.WORKING_LOCATION as LOCATION,
@@ -160,6 +162,12 @@
                   AND be.CWID IN ( SELECT DISTINCT CWID FROM B_HR_EMPLOYEE )
               </if>
         </where>
+    </select>
+
+    <select id="getPrevHREmployeeInfoByBatchNo" parameterType="java.lang.String" resultMap="employeeInfoMap">
+        SELECT <include refid="selectHREmployeeColumns"/>
+            FROM B_HR_PERV_EMPLOYEE be
+            WHERE be.CWID IN ( SELECT DISTINCT CWID FROM b_ctrip_sync_employee WHERE BATCH_ID=#{batchNo})
     </select>
     
 

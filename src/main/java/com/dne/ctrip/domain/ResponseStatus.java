@@ -1,9 +1,11 @@
 package com.dne.ctrip.domain;
 
 import com.alibaba.fastjson.annotation.JSONField;
+import lombok.Data;
 
 import java.io.Serializable;
 
+@Data
 public class ResponseStatus implements Serializable {
 
     private static final long serialVersionUID = 1L;
@@ -16,27 +18,4 @@ public class ResponseStatus implements Serializable {
     @JSONField(name = "Message")
     private String message;
 
-    public Boolean getSuccess() {
-        return success;
-    }
-
-    public void setSuccess(Boolean success) {
-        this.success = success;
-    }
-
-    public Integer getErrorCode() {
-        return errorCode;
-    }
-
-    public void setErrorCode(Integer errorCode) {
-        this.errorCode = errorCode;
-    }
-
-    public String getMessage() {
-        return message;
-    }
-
-    public void setMessage(String message) {
-        this.message = message;
-    }
 }

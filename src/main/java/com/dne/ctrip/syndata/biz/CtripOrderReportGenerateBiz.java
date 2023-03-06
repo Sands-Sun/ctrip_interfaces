@@ -2,7 +2,6 @@ package com.dne.ctrip.syndata.biz;
 
 import cn.hutool.core.convert.Convert;
 import cn.hutool.core.util.StrUtil;
-import com.dne.core.common.Constant;
 import com.dne.core.common.CtripAbsRiverBiz;
 import com.dne.core.util.DateUtils;
 import com.dne.core.util.ExcelExportUtils;
@@ -10,6 +9,8 @@ import com.dne.core.util.Global;
 import com.dne.core.util.StringUtils;
 import com.dne.ctrip.entity.OrderReportInfo;
 import com.dne.ctrip.mail.template.CommonSendMailUtils;
+import com.dne.ctrip.mail.vo.OrderInfoSyncJobMailVo;
+import com.dne.ctrip.mail.vo.OrderReportMailVo;
 import com.dne.ctrip.syndata.service.OrderInfoService;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Multimap;
@@ -20,13 +21,15 @@ import org.springframework.context.support.ClassPathXmlApplicationContext;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
-import java.text.MessageFormat;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
+import static com.dne.core.common.Constant.CTRIP_ORDER_INFO_SYNC_JOB_MAIL_TYPE;
+import static com.dne.core.common.Constant.CTRIP_ORDER_REPORT_JOB_NAME;
+
 @Component
-public class CtripOrderReportGenerateBiz extends CtripAbsRiverBiz {
+public class CtripOrderReportGenerateBiz extends CtripAbsRiverBiz<OrderReportMailVo> {
 
 
     @Autowired
@@ -45,7 +48,7 @@ public class CtripOrderReportGenerateBiz extends CtripAbsRiverBiz {
     private String remindSubject;
 
     public CtripOrderReportGenerateBiz() {
-        super(Constant.CTRIP_ORDER_REPORT);
+        super(CTRIP_ORDER_REPORT_JOB_NAME);
     }
     @Override
     protected void hookInit() {
@@ -54,13 +57,8 @@ public class CtripOrderReportGenerateBiz extends CtripAbsRiverBiz {
 
 
     @Override
-    public String processLog(Map<String, Object> dataMap) {
-        return null;
-    }
-
-    @Override
-    public void processData(Map<String, Object> dataMap) {
-        log.info("Generate didi order report start: " + dataMap);
+    public void processData(Map<String, Object> dataMap, OrderReportMailVo mailVo) {
+        log.info("Generate ctrip order report start: " + dataMap);
         String startDate= Convert.toStr(dataMap.get("startDate"));
         String endDate=Convert.toStr(dataMap.get("endDate"));
         String mailType= "month".equals(dataMap.get("type"))?"ctripMonthReport":"ctripOrderReport";
@@ -74,6 +72,10 @@ public class CtripOrderReportGenerateBiz extends CtripAbsRiverBiz {
         int orderTotal = orderReportList.size();
         int mailTotal = 0 ;
         log.info("Generate didi order report num: " + orderTotal);
+        mailVo.setOrderTotal(orderTotal);
+        mailVo.setStartDate(startDate);
+        mailVo.setEndDate(endDate);
+        mailVo.setReportType(mailType);
 
         if (orderTotal > 0) {
             // 把订单按照cwid分组
@@ -101,26 +103,27 @@ public class CtripOrderReportGenerateBiz extends CtripAbsRiverBiz {
                     ExcelExportUtils.export2ExcelByPojo(orderList, headNames, fieldNames, orderGroup.getKey(), reportTitle, reportExcelFile);
 
                     // 把生产的Excel报表发送给打车用户对应的Approve cwid
-                    OrderReportInfo reprot = orderList.iterator().next();
-                    if (null != reprot && StringUtils.isNotEmpty(reprot.getCcCwid())) {
-                        log.info("Generate ctrip order report send email: " + reprot.getCcCwid());
+                    OrderReportInfo report = orderList.iterator().next();
+                    if (null != report && StringUtils.isNotEmpty(report.getCcCwid())) {
+                        report.setMailType(mailType);
+                        report.setAttachment(reportExcelFile);
+                        log.info("Generate ctrip order report send email: " + report.getCcCwid());
                         mailTotal++;
-                        if("BLANK".equals(reprot.getCcCwid())){
+                        if("BLANK".equals(report.getCcCwid())){
                             String email = Global.getConfig("order.report.error.mail");
-                            CommonSendMailUtils.sendMail(CommonSendMailUtils.MAIL_PROCESS_CTRIP_TYPE,
-                                    reprot, email, mailType, reportExcelFile);
+                            report.setMailTo(email);
                         }else{
-                            CommonSendMailUtils.sendMail(CommonSendMailUtils.MAIL_PROCESS_CTRIP_TYPE,
-                                    reprot, reprot.getCcCwid(), mailType, reportExcelFile);
+                            report.setMailTo(report.getCcCwid());
                         }
+                        CommonSendMailUtils.sendMail(report);
                     }
                 }
             } catch (IOException e) {
                 e.printStackTrace();
             }
         }
-        CommonSendMailUtils.sendMail(CommonSendMailUtils.MAIL_SENDER_CTRIP_CONST,
-                remindSubject, remindUser, "Generate ctrip order report Total :   "+mailTotal,
+        CommonSendMailUtils.sendMail(remindSubject, remindUser,
+                "Generate ctrip order report Total :   "+mailTotal,
                 "");
         log.info("Generate ctrip order report end.");
     }
@@ -160,7 +163,7 @@ public class CtripOrderReportGenerateBiz extends CtripAbsRiverBiz {
             dataMap.put("start_date", formDay);
             dataMap.put("end_date", endDay);
             System.out.println(dataMap);
-            orderBiz.processData(dataMap);
+            orderBiz.processData(dataMap,new OrderInfoSyncJobMailVo(CTRIP_ORDER_INFO_SYNC_JOB_MAIL_TYPE));
         }
     }
 

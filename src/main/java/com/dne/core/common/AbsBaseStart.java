@@ -4,6 +4,8 @@ import cn.hutool.core.io.resource.ClassPathResource;
 import com.dne.core.util.Global;
 import com.dne.core.util.StringUtils;
 import com.dne.ctrip.mail.template.CommonSendMailUtils;
+import com.dne.ctrip.mail.vo.BaseMailVo;
+import com.dne.ctrip.mail.vo.JobMailVo;
 import org.apache.log4j.xml.DOMConfigurator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -11,6 +13,7 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.context.support.ClassPathXmlApplicationContext;
 import org.springframework.core.NamedThreadLocal;
 
+import javax.annotation.PostConstruct;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.net.URL;
@@ -27,6 +30,8 @@ public abstract class AbsBaseStart {
 
     protected static int retryCount = 0;
 
+    protected JobMailVo mailVo;
+
     private static String receiveSynLogEmail;
 
     static {
@@ -35,9 +40,12 @@ public abstract class AbsBaseStart {
         receiveSynLogEmail = Global.getConfig("syn.log.email");
     }
 
-    public AbsBaseStart(String logFile) {
+
+    public AbsBaseStart(String logFile, JobMailVo mailVo) {
         URL log4jFile = new ClassPathResource("config/" + logFile).getUrl();
         DOMConfigurator.configure(log4jFile);
+        this.mailVo = mailVo;
+        mailVo.setMailTo(receiveSynLogEmail);
     }
 
 
@@ -46,51 +54,51 @@ public abstract class AbsBaseStart {
      * @param riverBiz
      * @param dataMap
      */
-    protected void execute(BaseAbsRiverBiz riverBiz, Map<String, Object> dataMap, String subject) {
-        String processLog;
+    protected void execute(CtripAbsRiverBiz riverBiz,Map<String, Object> dataMap) {
+        String errorLog = null;
         Date jobBeginTime = new Date();
         log.debug("job begin time: {}", jobBeginTime);
         try {
             retryCounterThreadLocal.set(0);
-            riverBiz.processData(dataMap);
+            riverBiz.fillPervJobStatus(mailVo);
+            riverBiz.processData(dataMap,mailVo);
             Date jobEndTime = new Date();
             log.debug("end job time: {}", jobEndTime);
-            processLog = riverBiz.processLog(dataMap);
             handleJobSuccess(riverBiz,jobBeginTime,jobEndTime);
         } catch (Exception e) {
             Date jobFailEndTime = new Date();
             log.debug("job fail end time: {}", jobFailEndTime);
             handleJobFail(riverBiz,jobBeginTime,jobFailEndTime,e);
             e.printStackTrace();
-            processLog = this.getStackTrace(e);
+            errorLog = this.getStackTrace(e);
             if (retryCount > 0) {
                 this.retry(riverBiz, dataMap);
             }
         } finally {
             retryCounterThreadLocal.remove();
         }
-
-        if (StringUtils.isNotEmpty(processLog)) {
-			this.sendLogEmail(CommonSendMailUtils.MAIL_SENDER_CTRIP_CONST,subject, processLog);
+        if(errorLog != null){
+            mailVo.setErrorLog(errorLog);
         }
+        CommonSendMailUtils.sendMail(mailVo);
     }
 
-    public abstract void handleJobSuccess(BaseAbsRiverBiz riverBiz,Date jobBeginTime, Date jobEndTime);
+    public abstract void handleJobSuccess(CtripAbsRiverBiz riverBiz,Date jobBeginTime, Date jobEndTime);
 
-    public abstract void handleJobFail(BaseAbsRiverBiz riverBiz,Date jobBeginTime, Date jobFailEndTime, Exception e);
+    public abstract void handleJobFail(CtripAbsRiverBiz riverBiz,Date jobBeginTime, Date jobFailEndTime, Exception e);
 
     /**
      * 出错重试
      * @param riverSynBiz
      * @param dataMap
      */
-    private void retry(BaseAbsRiverBiz riverSynBiz, Map<String, Object> dataMap) {
+    private void retry(CtripAbsRiverBiz riverSynBiz, Map<String, Object> dataMap) {
         int retryCounter = retryCounterThreadLocal.get();
         retryCounter++;
         log.info("Bayer process retry: class={}, retryCounter={}", riverSynBiz.getClass().getName(), retryCounter);
         try {
             retryCounterThreadLocal.set(retryCounter);
-            riverSynBiz.processData(dataMap);
+            riverSynBiz.processData(dataMap,mailVo);
         } catch (Exception e) {
             e.printStackTrace();
             if (retryCounter < retryCount) {
@@ -107,12 +115,6 @@ public abstract class AbsBaseStart {
             return sw.toString();
         } finally {
             pw.close();
-        }
-    }
-
-    private void sendLogEmail(String mailSenderConst,String subject, String synLog) {
-        if (StringUtils.isNotEmpty(receiveSynLogEmail)) {
-            CommonSendMailUtils.sendMail(mailSenderConst,subject, receiveSynLogEmail, synLog, "");
         }
     }
 }

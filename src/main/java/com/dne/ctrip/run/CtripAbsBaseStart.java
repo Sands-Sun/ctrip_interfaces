@@ -3,6 +3,8 @@ package com.dne.ctrip.run;
 import com.alibaba.excel.exception.ExcelAnalysisException;
 import com.dne.core.common.*;
 import com.dne.core.util.StringUtils;
+import com.dne.ctrip.mail.vo.BaseMailVo;
+import com.dne.ctrip.mail.vo.JobMailVo;
 import com.microsoft.sqlserver.jdbc.SQLServerException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -10,29 +12,29 @@ import org.slf4j.LoggerFactory;
 import java.util.Date;
 import java.util.Objects;
 
+import static com.dne.core.common.Constant.CTRIP_LOG_FILE;
+
 
 public class CtripAbsBaseStart extends AbsBaseStart {
 
     private static final Logger log = LoggerFactory.getLogger(CtripAbsBaseStart.class);
 
 
-    public CtripAbsBaseStart() {
-        super(Constant.CTRIP_LOG_FILE);
+    public CtripAbsBaseStart(JobMailVo mailVo) {
+        super(CTRIP_LOG_FILE, mailVo);
     }
 
     @Override
-    public void handleJobSuccess(BaseAbsRiverBiz riverBiz, Date jobBeginTime, Date jobEndTime) {
-        CtripAbsRiverBiz ctripAbsRiverBiz = (CtripAbsRiverBiz) riverBiz;
+    public void handleJobSuccess(CtripAbsRiverBiz riverBiz, Date jobBeginTime, Date jobEndTime) {
         log.debug("ctrip job: {} success jobBeginTime: {}, jobEndTime: {}",
-                ctripAbsRiverBiz.getJobName(),jobBeginTime,jobEndTime);
-        ctripAbsRiverBiz.saveOrUpdateJobStatusSuccess(jobBeginTime,jobEndTime);
+                riverBiz.getJobName(),jobBeginTime,jobEndTime);
+        riverBiz.saveOrUpdateJobStatusSuccess(jobBeginTime,jobEndTime);
     }
 
     @Override
-    public void handleJobFail(BaseAbsRiverBiz riverBiz,Date jobBeginTime, Date jobFailEndTime,Exception e) {
-        CtripAbsRiverBiz ctripAbsRiverBiz = (CtripAbsRiverBiz) riverBiz;
+    public void handleJobFail(CtripAbsRiverBiz riverBiz,Date jobBeginTime, Date jobFailEndTime,Exception e) {
         log.debug("ctrip job: {} fail jobBeginTime: {}, jobEndTime: {}",
-                ctripAbsRiverBiz.getJobName(),jobBeginTime,jobFailEndTime);
+                riverBiz.getJobName(),jobBeginTime,jobFailEndTime);
         int errorCode = 9999;
         String errorMessage;
         String detailErrorMessage = null;
@@ -54,11 +56,11 @@ public class CtripAbsBaseStart extends AbsBaseStart {
         }else {
           errorMessage = e.getMessage() == null ? e.toString() : e.getMessage();
         }
-        ctripAbsRiverBiz.saveOrUpdateJobStatusError(
+        riverBiz.saveOrUpdateJobStatusError(
                 jobBeginTime,jobFailEndTime, errorCode, errorMessage);
 
         if(StringUtils.isNotEmpty(detailErrorMessage)){
-            ctripAbsRiverBiz.saveJobStatusDetailError(detailErrorMessage);
+            riverBiz.saveJobStatusDetailError(detailErrorMessage);
         }
     }
 }

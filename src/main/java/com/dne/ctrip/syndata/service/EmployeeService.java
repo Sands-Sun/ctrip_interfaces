@@ -101,6 +101,9 @@ public class EmployeeService {
         }
     }
 
+    public List<EmployeeInfo> getPrevHREmployeeInfoByBatchNo(String batchNo) {
+        return employeeDao.getPrevHREmployeeInfoByBatchNo(batchNo);
+    }
 
 
     public List<SyncEmployeeInfo> getSyncEmployeeInfoByBatchNo(String batchNo) {

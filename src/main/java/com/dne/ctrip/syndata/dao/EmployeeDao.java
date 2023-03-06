@@ -33,6 +33,8 @@ public interface EmployeeDao {
     void deleteAllPrevEmployeeRankName();
 
     List<EmployeeInfo> getEmployeeInfoByType(@Param("type") String type);
+
+    List<EmployeeInfo> getPrevHREmployeeInfoByBatchNo(String batchNo);
     List<SyncEmployeeInfo> getSyncEmployeeInfoByBatchNo(String batchNo);
 
     void saveOrUpdateEmployeeInfo(String batchNo);

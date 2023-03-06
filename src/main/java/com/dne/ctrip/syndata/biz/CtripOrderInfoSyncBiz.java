@@ -1,6 +1,5 @@
 package com.dne.ctrip.syndata.biz;
 
-import com.alibaba.fastjson.JSONObject;
 import com.dne.core.common.BaseException;
 import com.dne.core.common.Constant;
 import com.dne.core.common.CtripAbsRiverBiz;
@@ -9,26 +8,26 @@ import com.dne.core.util.StringUtils;
 import com.dne.ctrip.domain.*;
 import com.dne.ctrip.entity.CompanyCodeAndCostCenterRef;
 import com.dne.ctrip.entity.OrderInfo;
+import com.dne.ctrip.mail.vo.OrderInfoSyncJobMailVo;
 import com.dne.ctrip.param.CarOrderSettlementSearchRequest;
 import com.dne.ctrip.syndata.service.CompanyService;
 import com.dne.ctrip.syndata.service.OrderInfoService;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import org.apache.commons.collections.CollectionUtils;
-import org.apache.commons.io.FileUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import java.io.File;
-import java.io.IOException;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
+import static com.dne.core.common.Constant.CTRIP_SYNC_ORDER_JOB_NAME;
+
 @Component
-public class CtripOrderInfoSyncBiz extends CtripAbsRiverBiz {
+public class CtripOrderInfoSyncBiz extends CtripAbsRiverBiz<OrderInfoSyncJobMailVo> {
 
     @Autowired
     private OrderInfoService orderInfoService;
@@ -38,7 +37,7 @@ public class CtripOrderInfoSyncBiz extends CtripAbsRiverBiz {
 
 
     public CtripOrderInfoSyncBiz() {
-        super(Constant.CTRIP_SYNC_ORDER_JOB_NAME);
+        super(CTRIP_SYNC_ORDER_JOB_NAME);
     }
 
     @Override
@@ -47,31 +46,17 @@ public class CtripOrderInfoSyncBiz extends CtripAbsRiverBiz {
     }
 
     @Override
-    public String processLog(Map<String, Object> dataMap) {
-        StringBuilder synLog = new StringBuilder();
-        synLog.append("<b>Ctrip Order synchronization results</b>").append("\r\n\r\n");
-        synLog.append("Order synchronization date：").append(dataMap.get("start_date")).append(" - ")
-                .append(dataMap.get("end_date")).append("\r\n");
-        synLog.append("Sync batch no: ").append(dataMap.get("batchNo")).append("\r\n");
-        synLog.append("Sync order total: ").append(dataMap.get("synTotal")).append("\r\n");
-        synLog.append("Add order num: ").append(dataMap.get("addNum")).append("\r\n");
-        synLog.append("Update order num: ").append(dataMap.get("updNum"));
-        return synLog.toString();
-    }
-
-    @Override
-    public void processData(Map<String, Object> dataMap) {
+    public void processData(Map<String, Object> dataMap,OrderInfoSyncJobMailVo mailVo) {
         log.info("Synchronize ctrip order batchNo: " + batchNo);
         String startDate = (String) dataMap.get("start_date");
         String endDate = (String) dataMap.get("end_date");
         log.debug("start_date={}, end_date={}",startDate,endDate);
 //        mockCarOrderSettlement();
 
-        // 1、根据日期查询DIDI订单插入到订单同步表（b_didi_sync_order）中
+        // 1、根据日期查询Ctrip订单插入到订单同步表（b_ctrip_sync_order）中
         int syncOrderTotal = this.processCtripiRiverOrder(
                 DateUtils.strToDate(startDate),
                 DateUtils.strToDate(endDate));
-//        int syncOrderTotal = testProcessCtripiRiverOrder("test_much_order.json");
         log.info("Synchronize ctrip order total: " + syncOrderTotal);
         // 2、把同步订单数据和本地订单数据比较，若订单Id存在，更新本地订单，若不存在，插入订单
         int addOrderNum = orderInfoService.addOrderInfo(batchNo);
@@ -79,9 +64,9 @@ public class CtripOrderInfoSyncBiz extends CtripAbsRiverBiz {
 
         // 查询需要更新的订单
         List<OrderInfo> orderList = orderInfoService.getUpdSyncOrderInfo(batchNo);
-        int udpOrderSize = orderList.size();
-        log.info("Synchronize didi order update num: " + udpOrderSize);
-        if (udpOrderSize > 0) {
+        int udpOrderNum = orderList.size();
+        log.info("Synchronize didi order update num: " + udpOrderNum);
+        if (udpOrderNum > 0) {
             Map<String, Object> paramMap = Maps.newHashMap();
             paramMap.put("batchNo", batchNo);
             List<List<OrderInfo>> partition =
@@ -94,138 +79,17 @@ public class CtripOrderInfoSyncBiz extends CtripAbsRiverBiz {
                 orderInfoService.updOrderInfo(paramMap);
             }
         }
-        dataMap.put("batchNo", batchNo);
-        dataMap.put("synTotal", syncOrderTotal);
-        dataMap.put("addNum", addOrderNum);
-        dataMap.put("updNum", udpOrderSize);
+        mailVo.setStartDate(startDate);
+        mailVo.setEndDate(endDate);
+        mailVo.setSyncOrderTotal(syncOrderTotal);
+        mailVo.setAddOrderNum(addOrderNum);
+        mailVo.setUpdateOrderNum(udpOrderNum);
         log.info("Synchronize didi order end.");
     }
 
 
-
-
-//    private void mockCarOrderSettlement() {
-//        List<Order> orders =  orderDao.getUpdSyncOrderInfo("20191216506583");
-//        CarOrderSettlementSearchResponse response = new CarOrderSettlementSearchResponse();
-//
-//        List<CarOrderSettlementDetail> carDetails = Lists.newArrayList();
-//        int [] userCarType = {1,2,3,4,6};
-//        String [] requireLevelType = {"1","2","3","4","17","1900"};
-//        for(Order order : orders){
-//
-//            CarOrderSettlementDetail detail = new CarOrderSettlementDetail();
-//            CarOrderSettlementBaseInfo settBaseInfo = new CarOrderSettlementBaseInfo();
-//
-//            CarOrderDetail carOrderDetail = new CarOrderDetail();
-//            CarOrderBaseInfo orderBaseInfo = new CarOrderBaseInfo();
-//            CarOrderQuickProductInfo quickProductInfo = new CarOrderQuickProductInfo();
-//
-//            //orderBaseInfo
-//            orderBaseInfo.setContactMobile(order.getCallPhone());
-//            orderBaseInfo.setOrderStatus("Successful");
-//            orderBaseInfo.setPaymentType("ACCNT");
-//            int randomCarType = (int)(Math.random()* 4) + 1;
-//            orderBaseInfo.setOrderType(userCarType[randomCarType -1]);
-//            orderBaseInfo.setAccntAmount(BigDecimal.valueOf(order.getCompanyRealPay()));
-//            orderBaseInfo.setPersonAmount(BigDecimal.valueOf(order.getPersonalRealPay()));
-//            carOrderDetail.setCarOrderBaseInfo(orderBaseInfo);
-//
-//            //productInfo
-//            int randomRequireLevelType = (int)(Math.random()* 5) + 1;
-//            quickProductInfo.setVehicleId(requireLevelType[randomRequireLevelType - 1]);
-//            quickProductInfo.setDepartureCityId(order.getCity());
-//            quickProductInfo.setDepartureCityName(order.getCityName());
-//            quickProductInfo.setDepartureAddressDetail(order.getStartName());
-//            quickProductInfo.setArrivalAddressDetail(order.getEndName());
-//            quickProductInfo.setNormalDistance(String.valueOf(order.getNormalDistance()));
-//            quickProductInfo.setServiceBeginTime(order.getDepartureTime());
-//            quickProductInfo.setServiceEndTime(order.getFinishTime());
-//            carOrderDetail.setQuickProductInfo(quickProductInfo);
-//
-//            //settlementBaseInfo
-//            settBaseInfo.setCreateTime(order.getCreateTime());
-//            settBaseInfo.setOrderId(order.getOrderId());
-//            settBaseInfo.setChecked(true);
-//            settBaseInfo.setDelType("O"); ////明细类型(O:出票，R：退票)
-//            settBaseInfo.setRealAmount(BigDecimal.valueOf(order.getTotalPrice()));
-//            settBaseInfo.setRealAmountHasPost(BigDecimal.valueOf(order.getActualPrice()));
-//
-//            //
-//            CarOrderPassengerInfo passengerInfo = new CarOrderPassengerInfo();
-//            Long memberId = order.getMemberId();
-//            UserInfo where = new UserInfo();
-//            where.setDidiUserId(memberId);
-//            List<UserInfo> userList = userInfoDao.findList(where);
-//            if(CollectionUtils.isNotEmpty(userList)){
-//              UserInfo userInfo = userList.get(0);
-//              passengerInfo.setEmployeeID(userInfo.getCwid());
-//
-//            }
-//            passengerInfo.setCostCenter1(order.getCostCenter());
-//            passengerInfo.setDept1(order.getCompanyCode());
-//            carOrderDetail.setCarOrderPassengerInfoList(Collections.singletonList(passengerInfo));
-//
-//            detail.setCarOrderDetail(carOrderDetail);
-//            detail.setCarOrderSettlementBaseInfo(settBaseInfo);
-//            carDetails.add(detail);
-//        }
-//
-//        List<List<CarOrderSettlementDetail>> partition =
-//                Lists.partition(carDetails, 20);
-//        List<CarOrderAccountSettlementDetail> accountDetails = Lists.newArrayList();
-//        for(int i = 0; i < partition.size(); i++ ){
-//            List<CarOrderSettlementDetail> subDetail = partition.get(i);
-//            CarOrderAccountSettlementDetail accountDetail = new CarOrderAccountSettlementDetail();
-//
-//            accountDetail.setAccountId(String.valueOf((Math.random()* 999) + 1));
-//            accountDetail.setCarOrderSettlementDetails(subDetail);
-//            accountDetails.add(accountDetail);
-//        }
-//        response.setCarOrderAccountSettlementDetailList(accountDetails);
-//        String json =  JSONObject.toJSONString(response);
-//        String path = Objects.requireNonNull(this.getClass().getClassLoader().getResource("")).getPath();
-//
-//        try {
-//            FileUtils.writeStringToFile(new File(path + "mock/test_order.json"), json,"UTF-8");
-//        } catch (IOException e) {
-//            throw new RuntimeException(e);
-//        }
-//
-//    }
-
-
-    private CarOrderSettlementSearchResponse testConvertResp(String mockFile) {
-        CarOrderSettlementSearchResponse response = null;
-        String path = Objects.requireNonNull(this.getClass().getClassLoader().getResource("")).getPath();
-        try {
-            String jsonBody = FileUtils.readFileToString(new File(path + "mock/" + mockFile),"UTF-8");
-            log.debug("jsonBody: {}", jsonBody);
-            response = JSONObject.parseObject(jsonBody, CarOrderSettlementSearchResponse.class);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        return response;
-    }
-
-//    private int testProcessCtripiRiverOrder(String mockFile) {
-//        int totalRecord = 0;
-//        CarOrderSettlementSearchResponse searchResponse = testConvertResp(mockFile);
-//        ResponseStatus responseStatus = searchResponse.getStatus();
-//        if (responseStatus.getSuccess()) {
-//            List<CarOrderAccountSettlementDetail> details = searchResponse.getCarOrderAccountSettlementDetailList();
-//            totalRecord = searchResponse.getTotalRecord();
-//            int totalPage = totalRecord % ctripPageSize == 0 ? totalRecord / ctripPageSize :  (totalRecord / ctripPageSize) + 1;
-//            log.info("Query ctrip order: totalRecord={}, totalPage={}", totalRecord, totalPage);
-//            // 保存携程平台订单信息到本地订单同步表中
-//            this.saveSyncOrderInfo(details);
-//        }
-//        log.info("totalRecord={}", totalRecord);
-//        return totalRecord;
-//    }
-
-
     private int processCtripiRiverOrder(Date startDate, Date endDate) {
-        int totalRecord = 0;
+        int totalRecord;
         CarOrderSettlementSearchRequest param =
                 new CarOrderSettlementSearchRequest(startDate,endDate,1,ctripPageSize);
         CarOrderSettlementSearchResponse searchResponse =  handler.getOrderCarList(param);
@@ -321,7 +185,7 @@ public class CtripOrderInfoSyncBiz extends CtripAbsRiverBiz {
                     if(Objects.nonNull(settlementBaseInfo)){
                         orderInfo.setCreateTime(settlementBaseInfo.getCreateTime());
                         orderInfo.setOrderId(settlementBaseInfo.getOrderId());
-                        orderInfo.setInvoice(settlementBaseInfo.getChecked());
+                        orderInfo.setIsInvoice(settlementBaseInfo.getChecked());
                         orderInfo.setDelType(settlementBaseInfo.getDelType());
                         orderInfo.setTotalPrice(settlementBaseInfo.getRealAmount());
                         orderInfo.setActualPrice(settlementBaseInfo.getRealAmountHasPost());

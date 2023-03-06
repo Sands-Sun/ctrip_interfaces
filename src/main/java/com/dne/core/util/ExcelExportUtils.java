@@ -1,5 +1,6 @@
 package com.dne.core.util;
 
+import com.alibaba.excel.annotation.ExcelProperty;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import org.apache.poi.hssf.usermodel.HSSFDataFormat;
@@ -13,6 +14,7 @@ import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
 import java.io.*;
+import java.lang.reflect.Field;
 import java.net.URL;
 import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
@@ -43,12 +45,51 @@ public class ExcelExportUtils {
 
 	private static Font contentFont; // 内容行字体
 
-	public static <T> void export2ExcelByPojo(Collection<T> dataList, String[] headNames, String[] fieldNames, String sheetName, String title, String destPath) throws IOException {
+	public static  void export2ExcelByPojo(
+			List<List> dataList,  List<Class> clazz, List<String> sheetName,
+			List<String> title,String destPath)throws IOException {
 		File file = new File(destPath).getParentFile();
 		if (!file.exists()) {
 			file.mkdirs();
 		}
-		ExportSetInfo<T> setInfo = new ExportSetInfo<T>();
+		ExportSetInfo setInfo = new ExportSetInfo();
+		for(int i = 0; i < dataList.size(); i++ ){
+			List<String> headNames = Lists.newArrayList();
+			List<String> fieldNames = Lists.newArrayList();
+			for(Field field : clazz.get(i).getDeclaredFields()){
+				if(field.isAnnotationPresent(ExcelProperty.class)){
+					ExcelProperty e = field.getAnnotation(ExcelProperty.class);
+					fieldNames.add(field.getName());
+					headNames.add(e.value()[0]);
+				}
+			}
+			setInfo.addTitle(title.get(i));
+			setInfo.addHeadName(headNames.toArray(new String[0]));
+			setInfo.addFieldName(fieldNames.toArray(new String[0]));
+			setInfo.addSheetData(sheetName.get(i), dataList.get(i));
+		}
+
+
+		OutputStream os = null;
+		try {
+			os = new FileOutputStream(destPath);
+			setInfo.setOut(os);
+			ExcelExportUtils.export2ExcelByPojo(setInfo);
+		} finally {
+			if (null != os) {
+				os.close();
+			}
+		}
+	}
+
+	public static  void export2ExcelByPojo(
+			Collection dataList, String[] headNames, String[] fieldNames, String sheetName,
+			String title, String destPath) throws IOException {
+		File file = new File(destPath).getParentFile();
+		if (!file.exists()) {
+			file.mkdirs();
+		}
+		ExportSetInfo setInfo = new ExportSetInfo();
 		setInfo.addTitle(title);
 		setInfo.addHeadName(headNames);
 		setInfo.addFieldName(fieldNames);
@@ -65,28 +106,38 @@ public class ExcelExportUtils {
 		}
 	}
 
+
+	public static  void export2ExcelByPojo(List<ExportSetInfo> setInfos) throws IOException {
+		init();
+		for(int i = 0; i < setInfos.size(); i++ ){
+			ExportSetInfo setInfo = setInfos.get(i);
+		}
+
+	}
+
+
 	/**
 	 * @throws IllegalAccessException
 	 * @throws IllegalArgumentException
 	 * @Description: 将Map里的集合对象数据输出Excel数据流
 	 */
-	public static <T> void export2ExcelByPojo(ExportSetInfo<T> setInfo) throws IOException {
+	public static  void export2ExcelByPojo(ExportSetInfo setInfo) throws IOException {
 		init();
-		Set<Entry<String, Collection<T>>> set = setInfo.getSheetDataMap().entrySet();
+		Set<Entry<String, Collection>> set = setInfo.getSheetDataMap().entrySet();
 		String[] sheetNames = new String[setInfo.getSheetDataMap().size()];
 		int sheetNameNum = 0;
-		for (Entry<String, Collection<T>> entry : set) {
+		for (Entry<String, Collection> entry : set) {
 			sheetNames[sheetNameNum] = entry.getKey();
 			sheetNameNum++;
 		}
 		XSSFSheet[] sheets = getSheets(setInfo.getSheetDataMap().size(), sheetNames);
 
 		int sheetNum = 0;
-		for (Entry<String, Collection<T>> entry : set) {
+		for (Entry<String, Collection> entry : set) {
 			int rowNum = 2;
 			int seq = 1;
 			// Sheet
-			Collection<T> objs = entry.getValue();
+			Collection objs = entry.getValue();
 			// 标题行
 			createTableTitleRow(setInfo, sheets, sheetNum);
 			// 日期行
@@ -107,59 +158,6 @@ public class ExcelExportUtils {
 				if (fieldNames != null) {
 					for (int num = 0; num < fieldNames.length; num++) {
 						Object value = ReflectionUtils.invokeGetterMethod(obj, fieldNames[num]);
-						cells[cellNum].setCellValue(value == null ? "" : value.toString());
-						cellNum++;
-					}
-				}
-				rowNum++;
-			}
-			adjustColumnSize(sheets, sheetNum, fieldNames); // 自动调整列宽
-			sheetNum++;
-		}
-		wb.write(setInfo.getOut());
-	}
-
-	/**
-	 * @throws IllegalAccessException
-	 * @throws IllegalArgumentException
-	 * @Description: 将Map里的集合对象数据输出Excel数据流
-	 */
-	public static void export2ExcelByMap(ExportSetInfo<Map<String, Object>> setInfo) throws IOException, IllegalArgumentException, IllegalAccessException {
-		init();
-		Set<Entry<String, Collection<Map<String, Object>>>> set = setInfo.getSheetDataMap().entrySet();
-		String[] sheetNames = new String[setInfo.getSheetDataMap().size()];
-		int sheetNameNum = 0;
-		for (Entry<String, Collection<Map<String, Object>>> entry : set) {
-			sheetNames[sheetNameNum] = entry.getKey();
-			sheetNameNum++;
-		}
-		XSSFSheet[] sheets = getSheets(setInfo.getSheetDataMap().size(), sheetNames);
-		int sheetNum = 0;
-		for (Entry<String, Collection<Map<String, Object>>> entry : set) {
-			int rowNum = 2;
-			int seq = 1;
-			// Sheet
-			Collection<Map<String, Object>> objs = entry.getValue();
-			// 标题行
-			createTableTitleRow(setInfo, sheets, sheetNum);
-			// 日期行
-			if (setInfo.isDateCols()) {
-				rowNum = 3;
-				seq = 2;
-				createTableDateRow(setInfo, sheets, sheetNum);
-			}
-			// 表头
-			creatTableHeadRow(setInfo, sheets, sheetNum);
-			// 表体
-			String[] fieldNames = setInfo.getFieldNames().get(sheetNum);
-			for (Map<String, Object> obj : objs) {
-				XSSFRow contentRow = sheets[sheetNum].createRow(rowNum);
-				contentRow.setHeight((short)300);
-				XSSFCell[] cells = getCells(contentRow, setInfo.getFieldNames().get(sheetNum).length, seq);
-				int cellNum = 1; // 去掉一列序号，因此从1开始
-				if (fieldNames != null) {
-					for (int num = 0; num < fieldNames.length; num++) {
-						Object value = obj.get(fieldNames[num]);
 						cells[cellNum].setCellValue(value == null ? "" : value.toString());
 						cellNum++;
 					}
@@ -314,7 +312,7 @@ public class ExcelExportUtils {
 	/**
 	 * @Description: 创建标题行(需合并单元格)
 	 */
-	private static <T> void createTableTitleRow(ExportSetInfo<T> setInfo, XSSFSheet[] sheets, int sheetNum) {
+	private static  void createTableTitleRow(ExportSetInfo setInfo, XSSFSheet[] sheets, int sheetNum) {
 		CellRangeAddress titleRange = new CellRangeAddress(0, 0, 0, setInfo.getFieldNames().get(sheetNum).length);
 		sheets[sheetNum].addMergedRegion(titleRange);
 		XSSFRow titleRow = sheets[sheetNum].createRow(0);
@@ -327,7 +325,7 @@ public class ExcelExportUtils {
 	/**
 	 * @Description: 创建日期行(需合并单元格)
 	 */
-	private static <T> void createTableDateRow(ExportSetInfo<T> setInfo, XSSFSheet[] sheets, int sheetNum) {
+	private static  void createTableDateRow(ExportSetInfo setInfo, XSSFSheet[] sheets, int sheetNum) {
 		CellRangeAddress dateRange = new CellRangeAddress(1, 1, 0, setInfo.getFieldNames().get(sheetNum).length);
 		sheets[sheetNum].addMergedRegion(dateRange);
 		XSSFRow dateRow = sheets[sheetNum].createRow(1);
@@ -340,7 +338,7 @@ public class ExcelExportUtils {
 	/**
 	 * @Description: 创建表头行(需合并单元格)
 	 */
-	private static <T> void creatTableHeadRow(ExportSetInfo<T> setInfo, XSSFSheet[] sheets, int sheetNum) {
+	private static  void creatTableHeadRow(ExportSetInfo setInfo, XSSFSheet[] sheets, int sheetNum) {
 		// 表头
 		XSSFRow headRow = sheets[sheetNum].createRow(setInfo.isDateCols() ? 2 : 1);
 		headRow.setHeight((short)350);
@@ -497,9 +495,9 @@ public class ExcelExportUtils {
 	 * @Description: 封装Excel导出的设置信息
 	 * @author: 谭凯凯
 	 */
-	public static class ExportSetInfo<T> {
+	public static class ExportSetInfo {
 
-		private Map<String, Collection<T>> sheetDataMap = Maps.newLinkedHashMap();
+		private Map<String, Collection> sheetDataMap = Maps.newLinkedHashMap();
 
 		private List<String> titles = Lists.newArrayList();
 
@@ -537,7 +535,7 @@ public class ExcelExportUtils {
 		 * @param sheetName sheet名称
 		 * @param objs 导出数据泛型 String : 代表sheet名称 List : 代表单个sheet里的所有行数据
 		 */
-		public void addSheetData(String sheetName, Collection<T> objs) {
+		public void addSheetData(String sheetName, Collection objs) {
 			this.sheetDataMap.put(sheetName, objs);
 		}
 
@@ -553,7 +551,7 @@ public class ExcelExportUtils {
 			return fieldNames;
 		}
 
-		public Map<String, Collection<T>> getSheetDataMap() {
+		public Map<String, Collection> getSheetDataMap() {
 			return sheetDataMap;
 		}
 
@@ -569,7 +567,7 @@ public class ExcelExportUtils {
 			return out;
 		}
 
-		public void setSheetDataMap(Map<String, List<T>> sheetDataMap) {
+		public void setSheetDataMap(Map<String, List> sheetDataMap) {
 			this.sheetDataMap.putAll(sheetDataMap);
 		}
 

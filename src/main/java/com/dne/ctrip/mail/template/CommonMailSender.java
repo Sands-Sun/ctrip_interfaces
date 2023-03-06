@@ -7,6 +7,7 @@ import com.dne.core.util.StringUtils;
 import com.dne.ctrip.entity.BatchCompleteMail;
 import com.dne.ctrip.entity.CommonMailPolicy;
 import com.dne.ctrip.mail.service.CommonMailService;
+import com.dne.ctrip.mail.vo.BaseMailVo;
 import org.apache.velocity.VelocityContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -21,6 +22,8 @@ public class CommonMailSender {
 	private static final Logger log = LoggerFactory.getLogger(CommonMailSender.class);
 
 	protected VelocityContext context = null;
+
+
 
 	private CommonMailContent mailContent;
 
@@ -80,7 +83,7 @@ public class CommonMailSender {
 		}
 	}
 
-	public String getMailBody(BaseEntity bizBean, int type) {
+	public String getMailBody(BaseMailVo bizBean, int type) {
 		this.mail_body = mailContent.getMailBody(bizBean, type);
 		return mail_body;
 	}
@@ -221,7 +224,7 @@ public class CommonMailSender {
 		this.mailSubjectEnd = mailSubjectEnd;
 	}
 
-	public boolean sendMail(BaseEntity bizBean) {
+	public boolean sendMail(BaseMailVo baseMailVo) {
 		boolean flag = true;
 		if (null != commonMailPolicy) {
 			try {
@@ -235,7 +238,7 @@ public class CommonMailSender {
 				this.mail_sender = mailContent.getMail_sender();
 				this.status = mailContent.getStatus();
 				this.mailToForRole = commonMailPolicy.getMailTo();
-				this.mail_body = mailContent.getMailBody(bizBean, 0);
+				this.mail_body = mailContent.getMailBody(baseMailVo, 0);
 				this.getMailTo();
 				flag = flag && this.sendMail();
 			} catch (Exception e) {

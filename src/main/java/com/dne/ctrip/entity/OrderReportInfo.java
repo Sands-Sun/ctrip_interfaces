@@ -1,8 +1,9 @@
 package com.dne.ctrip.entity;
 
 import com.dne.core.basic.entity.BaseEntity;
+import com.dne.ctrip.mail.vo.BaseMailVo;
 
-public class OrderReportInfo extends BaseEntity {
+public class OrderReportInfo extends BaseMailVo {
 
     private static final long serialVersionUID = 1L;
 
@@ -45,6 +46,10 @@ public class OrderReportInfo extends BaseEntity {
     private String regulation;
 
     private String payTypeDesc;
+
+    public OrderReportInfo(String mailType) {
+        super(mailType);
+    }
 
     public String getCcCode() {
         return ccCode;

@@ -1,0 +1,12 @@
+<b>Ctrip Order check Statement results</b>
+
+Previous batch no: ${prevBatchNo}
+Previous run status: #if($errorCode>0)${runStatus} error code: ${$errorCode} error message: ${errorMessage}${newLine}#else${runStatus} ${newLine}#end
+Current sync batch no: ${batchNo}
+Account statement date: #if($statementDate)${statementDate}${newLine}#else N/A${newLine}#end
+Account statement file: #if($statementFile)${statementFile}${newLine}#else N/A${newLine}#end
+Account statement order total num: ${orderNumTotal}
+Account statement refund total num: ${orderRefundNumTotal}
+No exist order num: ${noExistOrderNum}
+Repeat order num: ${repeatOrderNum}
+Large amt order num: ${largeAmtOrderNum}

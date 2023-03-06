@@ -124,7 +124,7 @@ public class EmployeeInfo  implements Serializable {
         }else if(StringUtils.containsChinese(chineseName)){
             this.chineseName = StringUtils.deleteWhitespace(chineseName);
         }else {
-            System.out.println("-----Not Chinese name: {}" + chineseName);
+            System.out.println("-----Not Chinese name: " + chineseName);
             this.chineseName = StringUtils.trim(chineseName);
         }
     }

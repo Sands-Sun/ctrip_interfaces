@@ -30,10 +30,18 @@ public class EasyExcelUtil {
 	}
 
 	public <T extends BaseRowModel> void writeExcel2007(
-			List<? extends BaseRowModel> data,OutputStream outputStream,Integer sheetNo,
-			Integer headLineMun,ExcelTypeEnum typeEnum,Class<T> clazz) {
+			List<List<? extends BaseRowModel>> dataList,OutputStream outputStream, List<String> sheetNameList,
+			Integer headLineMun,ExcelTypeEnum typeEnum,List<Class<T>> clazzList) {
 		ExcelWriter excelWriter = new ExcelWriter(outputStream,typeEnum);
-		excelWriter.write(data,new Sheet(sheetNo, headLineMun, clazz));
+		for(int i = 0; i < dataList.size(); i++ ){
+			int sheetNo = i + 1;
+			List<? extends BaseRowModel> data = dataList.get(i);
+			Class<T> clazz = clazzList.get(i);
+			String sheetName = sheetNameList.get(i);
+			Sheet sheet = new Sheet(sheetNo, headLineMun, clazz);
+			sheet.setSheetName(sheetName);
+			excelWriter.write(data,sheet);
+		}
 	}
 
 
@@ -49,6 +57,8 @@ public class EasyExcelUtil {
 		try {
 			OutputStream outputStream = Files.newOutputStream(file.toPath(),
 					StandardOpenOption.CREATE_NEW);
+
+
 		} catch (IOException e) {
 			e.printStackTrace();
 		}

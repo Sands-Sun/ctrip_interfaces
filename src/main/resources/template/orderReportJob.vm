@@ -1,0 +1,8 @@
+<b>Ctrip Order report results</b>
+
+Previous batch no: ${prevBatchNo}
+Previous run status: #if($errorCode>0)${runStatus} error code: ${$errorCode} error message: ${errorMessage}${newLine}#else${runStatus} ${newLine}#end
+Order report date: ${startDate} - ${endDate}
+Current Sync batch no: ${batchNo}
+Order report type: ${reportType}
+Order total num: ${orderTotal}
